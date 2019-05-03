@@ -45,7 +45,7 @@ args = parser.parse_args()
 labelmaps = {'thin': 0, 'thick': 0, 'glue': 1, 'mixed cluster': 2, 'others': 3}
 
 hyperparams = { 'size_thre': 784, # after detect foreground regions, filter them based on its size. (784=28*28 corresponds to around 5 um regions)
-                'clf_method': 'rigde', # which classifier to use (linear): 'rigde', 'linearsvm'
+                'clf_method': 'ridge', # which classifier to use (linear): 'rigde', 'linearsvm'
                 'cluster_fea': 'all', # what feature to use for clustering, could be: 'all', 'shape', 'color'
                 'cluster_method': 'affinity', # which clustering method to use, could be: 'affinity', 'kmeans', 'meanshift'
                 }

@@ -56,7 +56,7 @@ args = parser.parse_args()
 labelmaps = {'thin': 0, 'thick': 0, 'glue': 1, 'mixed cluster': 2, 'others': 3}
 
 hyperparams = { 'size_thre': 784, # after detect foreground regions, filter them based on its size. (784 corresponds to 5 um regions)
-                'clf_method': 'rigde', # which classifier to use (linear): 'rigde', 'linearsvm'
+                'clf_method': 'ridge', # which classifier to use (linear): 'rigde', 'linearsvm'
                 'cluster_fea': 'all', # what feature to use for clustering, could be: 'all', 'shape', 'color'
                 'cluster_method': 'affinity', # which clustering method to use, could be: 'affinity', 'kmeans', 'meanshift'
                 }
@@ -444,7 +444,7 @@ def main():
             # img_names = img_names[args.img_sid:args.img_eid]
             
             flake_save_path = os.path.join(testclf_cluster_path, exp_name+sname)
-            cluster_save_path = os.path.join(cluster_path, exp_name, sname, '%s_%s'(hyperparams['cluster_fea'], hyperparams['cluster_method']))
+            cluster_save_path = os.path.join(cluster_path, exp_name, sname, '%s_%s'%(hyperparams['cluster_fea'], hyperparams['cluster_method']))
             testclf_cluster_save_path = os.path.join(testclf_cluster_path, exp_name, sname + '_' + method)
             online_save_path = os.path.join(online_path, exp_name, sname + '_' + method)
             testclf_img_save_path = os.path.join(testclf_img_path, exp_name, sname + '_' + method)

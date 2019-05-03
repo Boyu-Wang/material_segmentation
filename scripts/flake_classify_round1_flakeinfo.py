@@ -42,7 +42,7 @@ import random
 
 labelmaps = {'flake': -1, 'glue': 1, 'others': 0}
 
-hyperparams = { 'clf_method': 'linearsvm', # which classifier to use (linear): 'rigde', 'linearsvm', 'rbfkernelsvm'
+hyperparams = { 'clf_method': 'linearsvm', # which classifier to use (linear): 'ridge', 'linearsvm', 'rbfkernelsvm'
                 'C': 10, # parameter to tune for SVM
                 }
 
