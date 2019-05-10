@@ -1,10 +1,11 @@
 """
+classify thin /thick flakes
 use the detailed labeled dataset, create a train/validation set
 train different classifiers. test and visualize their performance.
 
 By: Boyu Wang (boywang@cs.stonybrook.edu)
-Created Data: 24 Apr 2019
-Last Modified Date: 25 Apr 2019
+Created Data: 8 May 2019
+Last Modified Date: 9 May 2019
 """
 
 import numpy as np
@@ -40,7 +41,7 @@ from sklearn.linear_model import RidgeClassifier
 import random
 
 
-labelmaps = {'flake': -1, 'glue': 1, 'others': 0}
+labelmaps = {'thin': 1, 'thick': -1, 'others': 0}
 
 hyperparams = { 'clf_method': 'linearsvm', # which classifier to use (linear): 'ridge', 'linearsvm', 'rbfkernelsvm'
                 'C': 5, # parameter to tune for SVM
@@ -176,10 +177,10 @@ def vis_error(pred_cls, pred_scores, gt_cls, flakes, img_save_path, item_names, 
 
 def main():
     subexp_name = 'YoungJaeShinSamples/4'
-    anno_file = '../data/data_jan2019_anno/anno_flakeglue_YoungJaeShinSamples_4_useryoungjae.db'
+    anno_file = '../data/data_jan2019_anno/anno_thickthin_YoungJaeShinSamples_4_useryoungjae.db'
     data_path = os.path.join('../data/data_jan2019', subexp_name)
     result_path = os.path.join('../results/data_jan2019_script/mat', subexp_name)
-    clf_path = os.path.join('../results/data_jan2019_script/flakeglue_clf', subexp_name)
+    clf_path = os.path.join('../results/data_jan2019_script/thickthin_clf', subexp_name)
     if not os.path.exists(clf_path):
         os.makedirs(clf_path)
     
@@ -212,7 +213,7 @@ def main():
     else:
         img_names = os.listdir(data_path)
         img_names.sort()
-        img_flakes = Parallel(n_jobs=6)(delayed(load_one_image)(os.path.join(data_path, img_names[i]), os.path.join(result_path, img_names[i][:-4]+'.p'))
+        img_flakes = Parallel(n_jobs=8)(delayed(load_one_image)(os.path.join(data_path, img_names[i]), os.path.join(result_path, img_names[i][:-4]+'.p'))
                                      for i in range(len(img_names)))
         # pickle.dump(img_flakes, open(flake_save_name, 'wb'))
         # load corresponding flakes
