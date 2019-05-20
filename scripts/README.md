@@ -8,6 +8,7 @@ The scripts are writeen in python 3.6, you need the following package to run the
 + pickle
 + joblib
 + multiprocessing 
++ pytorch 1.0 
 
 to install opencv3:
 > conda install -c anaconda opencv

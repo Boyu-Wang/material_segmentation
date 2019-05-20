@@ -10,22 +10,11 @@ from PIL import Image
 import cv2
 import argparse
 import os
-from scipy.spatial.distance import cdist
-from scipy.stats import entropy
-from skimage.morphology import disk
 import pickle
 import matplotlib
 import matplotlib.pyplot as plt
 matplotlib.use('Agg')
-from sklearn.cluster import KMeans, MeanShift, estimate_bandwidth, AffinityPropagation
-from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
-from sklearn.metrics import normalized_mutual_info_score
-from mpl_toolkits.mplot3d import Axes3D
-from multiprocessing import Pool
 from joblib import Parallel, delayed
-from sklearn.svm import LinearSVC
-from sklearn.linear_model import RidgeClassifier
 
 parser = argparse.ArgumentParser(description='flake segmentation')
 parser.add_argument('--exp_sid', default=0, type=int, help='exp start id')
