@@ -321,11 +321,17 @@ def classify_one_subexp(anno_file, subexp_dir, rslt_dir, flake_save_path, cluste
 
     cluster_train_ids = [i for i in range(n_total_clusters) if cluster_labels[i]==0 or cluster_labels[i]==1]
     cluster_test_ids = [i for i in range(n_total_clusters) if cluster_labels[i]==2]
+    print(n_total_clusters, len(cluster_train_ids), len(cluster_test_ids))
 
     cluster_train_feas = [cluster_feas[i] for i in range(n_total_clusters) if i in cluster_train_ids]
     # size: [num_example, fea_dim]
     cluster_train_feas = np.concatenate(cluster_train_feas, axis=0)
-    
+
+    cluster_test_feas = [cluster_feas[i] for i in range(n_total_clusters) if i in cluster_test_ids]
+    cluster_test_feas = np.concatenate(cluster_test_feas, axis=0)
+
+    print(cluster_train_feas.shape[0], cluster_test_feas.shape[0])
+
     cluster_train_labels = [cluster_labels[i] * np.ones([cluster_nflakes[i],1]) for i in range(n_total_clusters) if i in cluster_train_ids]
     cluster_train_labels = np.concatenate(cluster_train_labels, axis=0)
     cluster_train_labels = cluster_train_labels[:, 0]
@@ -343,7 +349,6 @@ def classify_one_subexp(anno_file, subexp_dir, rslt_dir, flake_save_path, cluste
     cluster_train_feas = cluster_train_feas / np.linalg.norm(cluster_train_feas, axis=1, keepdims=True)
     # size: [num_example, fea_dim + 1]
     cluster_train_feas = np.concatenate([cluster_train_feas, np.ones([cluster_train_feas.shape[0], 1])], axis=1)
-
 
     if not os.path.exists(os.path.join(online_save_path, 'all_test_feas.p')):
         all_test_feas = []

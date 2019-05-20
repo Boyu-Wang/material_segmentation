@@ -1,11 +1,13 @@
 """
-Flake segmentation using robustfit. 
-Given a image, the algorithm tries to fit a function as background. 
-Everything doesn't fit the background function well are identified as outlier (flake/glue).
-
-By: Boyu Wang (boywang@cs.stonybrook.edu)
-Created Data: 21 Feb 2019
-Last Modified Date: 8 Mar 2019
+Segment the region out, and classfy the region (flake/glue)
+For classification, only consider regions larger than 28*28.
+Save both features and segmentated image. Red boundary means flake, gree boundary means glue, white bounday means regions smaller than 784
+For segmentation:
+    Flake segmentation using robustfit.
+    Given a image, the algorithm tries to fit a function as background.
+    Everything doesn't fit the background function well are identified as outlier (flake/glue).
+For classification:
+    use hand crafted features
 """
 
 import numpy as np
@@ -36,10 +38,11 @@ args = parser.parse_args()
 
 hyperparams = { 'im_thre': 10, # given the residulal map, about this threshould is identified as foreground.
                 'size_thre': 0, # after detect foreground regions, filter them based on its size. (0 means all of them are kept)
+                'classifier_size_thre': 784, # for classification, only consider regions larger than 28*28.
                 }
 
 # process one image
-def process_one_image(img_name, bk_name, bk_flake_centroids, save_name, fig_save_name, im_i):
+def process_one_image(img_name, bk_name, bk_flake_centroids, save_name, fig_save_name, im_i, norm_fea, classifier):
     if os.path.exists(save_name + '.p') and os.path.exists(fig_save_name + '.png'):
         return
     print('process %s' %(img_name))
@@ -100,9 +103,7 @@ def process_one_image(img_name, bk_name, bk_flake_centroids, save_name, fig_save
 
         bwmap = (image_labelmap == i + 1).astype(np.uint8)
         _, flake_contours, _ = cv2.findContours(bwmap, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-        # print(im_tosave)
-        # print(flake_contours[0])
-        # print(flake_contours[0].shape)
+
         im_tosave = cv2.drawContours(im_tosave, flake_contours[0], -1, (255,0,0), 2)
 
         flake_contours = np.squeeze(flake_contours[0], 1)
@@ -157,6 +158,13 @@ def process_one_image(img_name, bk_name, bk_flake_centroids, save_name, fig_save
         flake_i['flake_shape_fea'] = np.array([flake_shape_len_area_ratio] + list(flake_shape_contour_hist) + [flake_shape_fracdim])
         flake_i['flake_color_fea'] = np.array(flake_color_fea + [flake_color_entropy] + flake_inner_color_fea + [flake_inner_color_entropy])
 
+        # if flake_sizes[i] > hyperparams['classifier_size_thre']:
+        #
+        #     flake_i['flakeglue_label'] =
+        # else:
+        #     flake_i['flakeglue_label'] = None
+
+
         flakes.append(flake_i)
 
 
@@ -186,6 +194,10 @@ def main():
     data_path = '../data/data_jan2019'
     result_path = '../results/data_jan2019_script/mat'
     result_fig_path = '../results/data_jan2019_script/fig'
+    result_classify_path = '../results/data_jan2019_script/classify'
+    norm_fea = pickle.load(open('../results/data_jan2019_script/flakeglue_clf_incomplete/YoungJaeShinSamples/4/normfea.p', 'rb'))
+    classifier = pickle.load(open('../results/data_jan2019_script/flakeglue_clf_incomplete/YoungJaeShinSamples/4/feanorm_classifier-linearsvm-0.100000.p','rb'))
+
 
     exp_names = os.listdir(data_path)
     exp_names.sort()
@@ -224,7 +236,8 @@ def main():
             Parallel(n_jobs=args.n_jobs)(delayed(process_one_image)(os.path.join(data_path, exp_name, sname, img_names[i]),
                             bk_name, bk_flake_centroids, 
                             os.path.join(result_path, exp_name, sname, img_names[i][:-4]), 
-                            os.path.join(result_fig_path, exp_name, sname, img_names[i][:-4]), i) for i in range(len(img_names)))
+                            os.path.join(result_fig_path, exp_name, sname, img_names[i][:-4]),
+                            os.path.join(result_classify_path, exp_name, sname,img_names[i][:-4]), norm_fea, classifier, i) for i in range(len(img_names)))
             
             # for i in range(len(img_names)):
             #     process_one_image(os.path.join(data_path, exp_name, sname, img_names[i]),

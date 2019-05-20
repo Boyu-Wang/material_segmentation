@@ -43,7 +43,7 @@ from torch.autograd import Variable
 from torch.autograd import gradcheck
 from torch.autograd import Function
 import misc
-from dataloader import LabelDataLoader, AllDataLoader
+from dataloader import LabelDataLoader, AllDataLoader, completeLabelDataLoader
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=4)
@@ -93,6 +93,9 @@ if 'gray' in opt.input_type:
     opt.nc += 1
 if 'hsv' in opt.input_type:
     opt.nc += 3
+if 'contrast' in opt.input_type:
+    opt.nc += 2
+
 opt.nc_out = opt.nc
 if opt.input_with_mask:
     opt.nc += 1
@@ -166,13 +169,20 @@ criterionRecon = models.MaskABSLoss()
 
 all_img_path = '../../results/data_jan2019_script/ae_img'
 all_mask_path = '../../results/data_jan2019_script/ae_mask'
-label_img_path = '../../results/data_jan2019_script/ae_label_img'
-label_mask_path = '../../results/data_jan2019_script/ae_label_mask'
+all_contrast_path = '../../results/data_jan2019_script/ae_contrast'
+# label_img_path = '../../results/data_jan2019_script/ae_label_img'
+# label_mask_path = '../../results/data_jan2019_script/ae_label_mask'
+# label_contrast_path = '../../results/data_jan2019_script/ae_label_contrast'
+label_img_path = '../../results/data_jan2019_script/ae_complete_label_img'
+label_mask_path = '../../results/data_jan2019_script/ae_complete_label_mask'
+label_contrast_path = '../../results/data_jan2019_script/ae_complete_label_contrast'
 
 resize = transforms.Compose([transforms.ToTensor()])
-trvalSet = AllDataLoader(data_type=opt.data_type, img_dir_prefix=all_img_path, mask_dir_prefix=all_mask_path, input_type=opt.input_type, input_with_mask=opt.input_with_mask, transform=resize)
-trSet = LabelDataLoader(img_dir_prefix=label_img_path, mask_dir_prefix=label_mask_path, input_type=opt.input_type, input_with_mask=opt.input_with_mask, subset='train', transform=resize)
-valSet = LabelDataLoader(img_dir_prefix=label_img_path, mask_dir_prefix=label_mask_path, input_type=opt.input_type, input_with_mask=opt.input_with_mask, subset='val', transform=resize)
+trvalSet = AllDataLoader(data_type=opt.data_type, img_dir_prefix=all_img_path, mask_dir_prefix=all_mask_path, contrast_dir_prefix=all_contrast_path, input_type=opt.input_type, input_with_mask=opt.input_with_mask, transform=resize)
+# trSet = LabelDataLoader(img_dir_prefix=label_img_path, mask_dir_prefix=label_mask_path, contrast_dir_prefix=label_contrast_path, input_type=opt.input_type, input_with_mask=opt.input_with_mask, subset='train', transform=resize)
+# valSet = LabelDataLoader(img_dir_prefix=label_img_path, mask_dir_prefix=label_mask_path, contrast_dir_prefix=label_contrast_path, input_type=opt.input_type, input_with_mask=opt.input_with_mask, subset='val', transform=resize)
+trSet = completeLabelDataLoader(img_dir_prefix=label_img_path, mask_dir_prefix=label_mask_path, contrast_dir_prefix=label_contrast_path, input_type=opt.input_type, input_with_mask=opt.input_with_mask, subset='train', transform=resize)
+valSet = completeLabelDataLoader(img_dir_prefix=label_img_path, mask_dir_prefix=label_mask_path, contrast_dir_prefix=label_contrast_path, input_type=opt.input_type, input_with_mask=opt.input_with_mask, subset='val', transform=resize)
 
 trvalLD = DD.DataLoader(trvalSet, batch_size=opt.batchSize,
        sampler=DD.sampler.RandomSampler(trvalSet),
@@ -266,6 +276,7 @@ for epoch in range(opt.start_epoch, opt.epoch_iter):
         torch.save(decoders.state_dict(), '%s/model_epoch_%d_decoders.pth' % (opt.dirCheckpoints, epoch))
 
     # evaluate on validation set
+    """
     if epoch % 1 == 0:
         # gt_labels = []
         # feats = []
@@ -307,7 +318,7 @@ for epoch in range(opt.start_epoch, opt.epoch_iter):
             misc.visualizeAsImages(recons[:, :-1].data.clone(),
                                    opt.dirImageoutput,
                                    filename='test_iter_' + str(epoch) + '_output_', n_sample=49, nrow=7, normalize=False)
-
+    """
 if doTesting:
     print('loading pretrained model')
     encoders.load_state_dict(torch.load('%s/model_epoch_%d_encoders.pth' % (opt.dirCheckpoints, opt.modelPathEpoch)))
@@ -410,7 +421,7 @@ if doTesting:
     from sklearn.svm import LinearSVC, SVC
     C = opt.C
 
-    Cs = [0.001, 0.01, 0.1, 0.5, 1, 2, 5, 10,]
+    Cs = [0.001, 0.01, 0.1, 0.5, 1, 2, 5, 10, 50]
     for C in Cs:
         method = 'linearsvm'
         clf = LinearSVC(random_state=0, tol=1e-5, C=C, max_iter=5e4)
@@ -418,10 +429,34 @@ if doTesting:
 
         train_pred_cls = clf.predict(train_feats)
         train_pred_scores = clf.decision_function(train_feats)
-        pred_cls = clf.predict(val_feats)
-        pred_scores = clf.decision_function(val_feats)
+        val_pred_cls = clf.predict(val_feats)
+        val_pred_scores = clf.decision_function(val_feats)
 
-        from sklearn.metrics import accuracy_score
+        # from sklearn.metrics import accuracy_score
+        # train_acc = accuracy_score(train_labels, train_pred_cls)
+        # val_acc = accuracy_score(val_labels, val_pred_cls)
+        # print('%s-%f: train: %.4f, val: %.4f' %(method, C, train_acc, val_acc))
+
+
+        from sklearn.metrics import accuracy_score, average_precision_score, confusion_matrix
         train_acc = accuracy_score(train_labels, train_pred_cls)
-        val_acc = accuracy_score(val_labels, pred_cls)
-        print('%s-%f: train: %.4f, val: %.4f' %(method, C, train_acc, val_acc))
+        val_acc = accuracy_score(val_labels, val_pred_cls)
+        train_conf = confusion_matrix(train_labels, train_pred_cls)
+        train_conf = train_conf / np.sum(train_conf, 1, keepdims=True)
+        val_conf = confusion_matrix(val_labels, val_pred_cls)
+        val_conf = val_conf / np.sum(val_conf, 1, keepdims=True)
+        print(train_conf)
+        print(val_conf)
+        # calculate map:
+        uniquelabels = [0, 1, 2]
+        train_aps = []
+        val_aps = []
+        for l in uniquelabels:
+            l_train_labels = [_ == l for _ in train_labels]
+            l_val_labels = [_ == l for _ in val_labels]
+            train_aps.append(average_precision_score(l_train_labels, train_pred_scores[:, l]))
+            val_aps.append(average_precision_score(l_val_labels, val_pred_scores[:, l]))
+
+        print(train_aps)
+        print(val_aps)
+        print('%s-%f: train: %.4f, val: %.4f, ap train: %4f, ap val: %4f' % (method, C, train_acc, val_acc, np.mean(train_aps), np.mean(val_aps)))

@@ -6,7 +6,6 @@ Created Data: 4 Apr 2019
 Last Modified Date: 4 Apr 2019
 """
 
-
 import numpy as np
 from PIL import Image
 import cv2
@@ -22,6 +21,7 @@ from skimage.morphology import disk
 import pickle
 import matplotlib
 import matplotlib.pyplot as plt
+
 matplotlib.use('Agg')
 import itertools
 import sklearn
@@ -37,6 +37,7 @@ from multiprocessing import Pool
 from joblib import Parallel, delayed
 from sklearn.svm import LinearSVC
 from sklearn.linear_model import RidgeClassifier
+
 # from multiprocessing import Pool
 
 parser = argparse.ArgumentParser(description='flake segmentation')
@@ -54,11 +55,13 @@ args = parser.parse_args()
 
 labelmaps = {'thin': 1, 'thick': 0, 'glue': 3, 'mixed cluster': 3, 'others': 3}
 
-hyperparams = { 'size_thre': 784, # after detect foreground regions, filter them based on its size. (784 corresponds to 5 um regions)
-                'clf_method': 'ridge', # which classifier to use (linear): 'rigde', 'linearsvm'
-                'cluster_fea': 'all', # what feature to use for clustering, could be: 'all', 'shape', 'color'
-                'cluster_method': 'affinity', # which clustering method to use, could be: 'affinity', 'kmeans', 'meanshift'
-                }
+hyperparams = {'size_thre': 784,
+               # after detect foreground regions, filter them based on its size. (784 corresponds to 5 um regions)
+               'clf_method': 'ridge',  # which classifier to use (linear): 'rigde', 'linearsvm'
+               'cluster_fea': 'all',  # what feature to use for clustering, could be: 'all', 'shape', 'color'
+               'cluster_method': 'affinity',
+               # which clustering method to use, could be: 'affinity', 'kmeans', 'meanshift'
+               }
 
 
 # load the detected flake and get features for the flake
@@ -89,7 +92,8 @@ def load_one_image(img_name, info_name):
                                 min(imW, f_mask_c_max + int(0.5 * f_mask_width))]
 
             flakes[i]['flake_large_bbox'] = flake_large_bbox
-            flakes[i]['flake_img'] = im_rgb[flake_large_bbox[0]: flake_large_bbox[1], flake_large_bbox[2]:flake_large_bbox[3], :].astype(np.uint8)
+            flakes[i]['flake_img'] = im_rgb[flake_large_bbox[0]: flake_large_bbox[1],
+                                     flake_large_bbox[2]:flake_large_bbox[3], :].astype(np.uint8)
 
     flakes = [flakes[j] for j in large_flake_idxs]
     return flakes
@@ -105,13 +109,13 @@ def load_one_cluster(cluster_name, cluster_save_path, all_img_names):
     with open(names_path, 'r') as f:
         names = f.readlines()
     num_flakes = len(names)
-    flake_end_id = min(num_row * num_row * (batch_id+1), num_flakes)
+    flake_end_id = min(num_row * num_row * (batch_id + 1), num_flakes)
 
     ids = []
     for fid in range(flake_start_id, flake_end_id):
         # find the original image name, and flake id
         img_name = names[fid].split('-')[1]
-        img_id = [ nn for nn in range(len(all_img_names)) if img_name in all_img_names[nn]]
+        img_id = [nn for nn in range(len(all_img_names)) if img_name in all_img_names[nn]]
         assert len(img_id) == 1
         img_id = img_id[0]
         flake_id = int(names[fid].split('-')[2].split('.')[0])
@@ -169,6 +173,7 @@ def readsingledb(flakeglue_dbname):
 
     return oriname_newflakeids
 
+
 def map_flake_ids(img_flakes, cluster_ids):
     n_img = len(cluster_ids)
     for i in range(n_img):
@@ -180,7 +185,7 @@ def map_flake_ids(img_flakes, cluster_ids):
                 print(ori_id, k, fks[k]['flake_id'])
                 break
         cluster_ids[i][1] = new_id
-        
+
     return cluster_ids
 
 
@@ -191,14 +196,15 @@ def load_cluster_fea(img_flakes, cluster_ids):
         # print(cluster_ids[i][0], cluster_ids[i][1])
         # print(len(img_flakes[cluster_ids[i][0]]))
         # print(img_flakes[cluster_ids[i][0]][cluster_ids[i][1]])
-        img_feas.append(np.concatenate([ img_flakes[cluster_ids[i][0]][cluster_ids[i][1]]['flake_shape_fea'],
+        img_feas.append(np.concatenate([img_flakes[cluster_ids[i][0]][cluster_ids[i][1]]['flake_shape_fea'],
                                         img_flakes[cluster_ids[i][0]][cluster_ids[i][1]]['flake_color_fea']]))
 
     img_feas = np.array(img_feas)
     return img_feas
 
 
-def test_one_cluster(cluster_ids, cluster_feas, mean_fea, classifier, img_flakes, new_cluster_save_path, cluster_imgname):
+def test_one_cluster(cluster_ids, cluster_feas, mean_fea, classifier, img_flakes, new_cluster_save_path,
+                     cluster_imgname):
     n_img = len(cluster_feas)
 
     # normalize feature (subtract mean, divide by l2 norm)
@@ -218,28 +224,28 @@ def test_one_cluster(cluster_ids, cluster_feas, mean_fea, classifier, img_flakes
     fig = plt.figure()
     cnt = 0
     for i in range(n_img):
-        if i % (num_row*num_row) == 0:
+        if i % (num_row * num_row) == 0:
             fig.clear()
             # print(i)
-        ax = fig.add_subplot(num_row, num_row, i %(num_row*num_row) + 1)
+        ax = fig.add_subplot(num_row, num_row, i % (num_row * num_row) + 1)
         # # also plot contour
         contours = flakes[i]['flake_contour_loc']
-        contours[:,0] = contours[:,0] - flakes[i]['flake_large_bbox'][0]
-        contours[:,1] = contours[:,1] - flakes[i]['flake_large_bbox'][2]
+        contours[:, 0] = contours[:, 0] - flakes[i]['flake_large_bbox'][0]
+        contours[:, 1] = contours[:, 1] - flakes[i]['flake_large_bbox'][2]
         contours = np.expand_dims(np.flip(contours), 1).astype(np.int32)
         if p_val[i] > 0:
             # glue, red
-            contour_img = cv2.drawContours(flakes[i]['flake_img'], contours, -1, (255,0,0), 2)
+            contour_img = cv2.drawContours(flakes[i]['flake_img'], contours, -1, (255, 0, 0), 2)
         if p_val[i] <= 0:
             # flake, green
-            contour_img = cv2.drawContours(flakes[i]['flake_img'], contours, -1, (0,255,0), 2)
+            contour_img = cv2.drawContours(flakes[i]['flake_img'], contours, -1, (0, 255, 0), 2)
         ax.imshow(contour_img)
         # ax.imshow(flakes[i]['flake_img'])
 
         # print(flakes[i]['flake_img'].shape)
         # print(flakes[i]['flake_bbox'])
         ax.axis('off')
-        if (i+1) % (num_row*num_row) == 0 or i == n_img-1:
+        if (i + 1) % (num_row * num_row) == 0 or i == n_img - 1:
             fig.savefig(os.path.join(new_cluster_save_path, cluster_imgname))
             cnt += 1
 
@@ -258,8 +264,8 @@ def test_one_image(classifier, img_flakes, mean_fea, ori_img_path, ori_img_name,
     # get features
     img_feas = []
     for i in range(n_img):
-        img_feas.append(np.concatenate([ img_flakes[i]['flake_shape_fea'],
-                                            img_flakes[i]['flake_color_fea']]))
+        img_feas.append(np.concatenate([img_flakes[i]['flake_shape_fea'],
+                                        img_flakes[i]['flake_color_fea']]))
 
     img_feas = np.array(img_feas)
 
@@ -277,66 +283,70 @@ def test_one_image(classifier, img_flakes, mean_fea, ori_img_path, ori_img_name,
     contour_img = im_rgb
     for i in range(n_img):
         contours = img_flakes[i]['flake_contour_loc']
-        contours[:,0] = contours[:,0]
-        contours[:,1] = contours[:,1]
+        contours[:, 0] = contours[:, 0]
+        contours[:, 1] = contours[:, 1]
         contours = np.expand_dims(np.flip(contours), 1).astype(np.int32)
         if p_val[i] > 0:
             # glue red
-            contour_img = cv2.drawContours(contour_img, contours, -1, (255,0,0), 2)
+            contour_img = cv2.drawContours(contour_img, contours, -1, (255, 0, 0), 2)
         else:
             # flake, green
-            contour_img = cv2.drawContours(contour_img, contours, -1, (0,255,0), 2)
+            contour_img = cv2.drawContours(contour_img, contours, -1, (0, 255, 0), 2)
         # contour_img = cv2.drawContours(im_rgb, contours, -1, (255,0,0), 2)
     ax.imshow(contour_img)
     ax.axis('off')
-    fig.savefig(os.path.join(new_img_save_path, '%s.png'%(ori_img_name)))
+    fig.savefig(os.path.join(new_img_save_path, '%s.png' % (ori_img_name)))
 
-        # # also show the location of the flake in ori image
-        # # fig.clear()
-        # # ax = fig.add_subplot(num_row, num_row, i %(num_row*num_row) + 1)
-        # flake_large_bbox = flakes[i]['flake_large_bbox']
-        # ori_img = Image.open(flakes[i]['img_name'])
-        # ori_img = np.array(ori_img).astype(np.uint8)
-        # # imH, imW, _ = ori_img.shape
-        # # print(ori_img.shape, flake_large_bbox[2]-1, flake_large_bbox[0], flake_large_bbox[3]-1, flake_large_bbox[1])
-        # bbox_img = cv2.rectangle(ori_img, (flake_large_bbox[2]-1, flake_large_bbox[0]), (flake_large_bbox[3]-1, flake_large_bbox[1]),(255,0,0),2)
-        # cv2.imwrite(os.path.join(cluster_save_path, str(cluster_id), 'flake%04d-%s-%d_bbox.png'%(i, ori_name, ori_flakeid)), cv2.cvtColor(bbox_img, cv2.COLOR_RGB2BGR))
-        # # ax.imshow(bbox_img)
-        # # ax.axis('off')
-        # # fig.savefig(os.path.join(cluster_save_path, str(cluster_id), 'flake%04d-%s-%d_bbox.png'%(i, ori_name, ori_flakeid)))
+    # # also show the location of the flake in ori image
+    # # fig.clear()
+    # # ax = fig.add_subplot(num_row, num_row, i %(num_row*num_row) + 1)
+    # flake_large_bbox = flakes[i]['flake_large_bbox']
+    # ori_img = Image.open(flakes[i]['img_name'])
+    # ori_img = np.array(ori_img).astype(np.uint8)
+    # # imH, imW, _ = ori_img.shape
+    # # print(ori_img.shape, flake_large_bbox[2]-1, flake_large_bbox[0], flake_large_bbox[3]-1, flake_large_bbox[1])
+    # bbox_img = cv2.rectangle(ori_img, (flake_large_bbox[2]-1, flake_large_bbox[0]), (flake_large_bbox[3]-1, flake_large_bbox[1]),(255,0,0),2)
+    # cv2.imwrite(os.path.join(cluster_save_path, str(cluster_id), 'flake%04d-%s-%d_bbox.png'%(i, ori_name, ori_flakeid)), cv2.cvtColor(bbox_img, cv2.COLOR_RGB2BGR))
+    # # ax.imshow(bbox_img)
+    # # ax.axis('off')
+    # # fig.savefig(os.path.join(cluster_save_path, str(cluster_id), 'flake%04d-%s-%d_bbox.png'%(i, ori_name, ori_flakeid)))
 
     plt.close()
-        # gc.collect()
+    # gc.collect()
 
 
 def draw_img(flake, online_save_path, img_name, k):
     fig = plt.figure()
     ax = fig.add_subplot(111)
     contours = flake['flake_contour_loc']
-    contours[:,0] = contours[:,0] - flake['flake_large_bbox'][0]
-    contours[:,1] = contours[:,1] - flake['flake_large_bbox'][2]
+    contours[:, 0] = contours[:, 0] - flake['flake_large_bbox'][0]
+    contours[:, 1] = contours[:, 1] - flake['flake_large_bbox'][2]
     contours = np.expand_dims(np.flip(contours), 1).astype(np.int32)
     ori_img = copy.copy(flake['flake_img'])
-    contour_img = cv2.drawContours(ori_img, contours, -1, (255,0,0), 2)
-    ori_contour = np.concatenate([flake['flake_img'], 255*np.ones([5, ori_img.shape[1],3], dtype=np.uint8), contour_img], axis=0)
+    contour_img = cv2.drawContours(ori_img, contours, -1, (255, 0, 0), 2)
+    ori_contour = np.concatenate(
+        [flake['flake_img'], 255 * np.ones([5, ori_img.shape[1], 3], dtype=np.uint8), contour_img], axis=0)
     ax.imshow(ori_contour)
     ax.axis('off')
-    fig.savefig(os.path.join(online_save_path, 'img-%s-%d.png'%(img_name,  k)))
+    fig.savefig(os.path.join(online_save_path, 'img-%s-%d.png' % (img_name, k)))
     plt.close()
 
 
 # process one sub exp, read all the data, and do clustering
-def classify_one_subexp(anno_file, flakeglue_anno_file, subexp_dir, rslt_dir, flake_save_path, cluster_save_path, new_cluster_save_path, method, online_save_path):
+def classify_one_subexp(anno_file, flakeglue_anno_file, subexp_dir, rslt_dir, flake_save_path, cluster_save_path,
+                        new_cluster_save_path, method, online_save_path):
     img_names = os.listdir(subexp_dir)
     img_names.sort()
     print('process ' + subexp_dir)
-    print('n images: %d'%(len(img_names)))
+    print('n images: %d' % (len(img_names)))
 
     if os.path.exists(flake_save_path + 'flakes.p'):
         img_flakes = pickle.load(open(flake_save_path + 'flakes.p', 'rb'))
     else:
-        img_flakes = Parallel(n_jobs=args.n_jobs)(delayed(load_one_image)(os.path.join(subexp_dir, img_names[i]), os.path.join(rslt_dir, img_names[i][:-4]+'.p'))
-                                     for i in range(len(img_names)))
+        img_flakes = Parallel(n_jobs=args.n_jobs)(delayed(load_one_image)(os.path.join(subexp_dir, img_names[i]),
+                                                                          os.path.join(rslt_dir,
+                                                                                       img_names[i][:-4] + '.p'))
+                                                  for i in range(len(img_names)))
         pickle.dump(img_flakes, open(flake_save_path + 'flakes.p', 'wb'))
     print('loading done')
 
@@ -349,29 +359,34 @@ def classify_one_subexp(anno_file, flakeglue_anno_file, subexp_dir, rslt_dir, fl
     if os.path.exists(flake_save_path + 'thickness_imgflake_ids.p'):
         cluster_imgflake_ids = pickle.load(open(flake_save_path + 'thickness_imgflake_ids.p', 'rb'))
     else:
-        cluster_imgflake_ids = Parallel(n_jobs=args.n_jobs)(delayed(load_one_cluster)(clustername_labels[i][0], cluster_save_path, img_names) for i in range(len(clustername_labels)))
-        cluster_imgflake_ids = Parallel(n_jobs=args.n_jobs)(delayed(map_flake_ids)(img_flakes, cluster_imgflake_ids[i]) for i in range(n_total_clusters))
+        cluster_imgflake_ids = Parallel(n_jobs=args.n_jobs)(
+            delayed(load_one_cluster)(clustername_labels[i][0], cluster_save_path, img_names) for i in
+            range(len(clustername_labels)))
+        cluster_imgflake_ids = Parallel(n_jobs=args.n_jobs)(
+            delayed(map_flake_ids)(img_flakes, cluster_imgflake_ids[i]) for i in range(n_total_clusters))
         pickle.dump(cluster_imgflake_ids, open(flake_save_path + 'thickness_imgflake_ids.p', 'wb'))
     print('id loading done')
 
     cluster_nflakes = [len(cluster_imgflake_ids[i]) for i in range(n_total_clusters)]
     cluster_labels = [clustername_labels[i][1] for i in range(n_total_clusters)]
-    
+
     if os.path.exists(flake_save_path + 'thickness_clusterfeats.p'):
         cluster_feas = pickle.load(open(flake_save_path + 'thickness_clusterfeats.p', 'rb'))
     else:
-        cluster_feas = Parallel(n_jobs=args.n_jobs)(delayed(load_cluster_fea)(img_flakes, cluster_imgflake_ids[i]) for i in range(n_total_clusters))
+        cluster_feas = Parallel(n_jobs=args.n_jobs)(
+            delayed(load_cluster_fea)(img_flakes, cluster_imgflake_ids[i]) for i in range(n_total_clusters))
         pickle.dump(cluster_feas, open(flake_save_path + 'thickness_clusterfeats.p', 'wb'))
     print('fea loading done')
 
-    cluster_train_ids = [i for i in range(n_total_clusters) if cluster_labels[i]==0 or cluster_labels[i]==1]
-    cluster_test_ids = [i for i in range(n_total_clusters) if cluster_labels[i]==0 or cluster_labels[i]==1]
+    cluster_train_ids = [i for i in range(n_total_clusters) if cluster_labels[i] == 0 or cluster_labels[i] == 1]
+    cluster_test_ids = [i for i in range(n_total_clusters) if cluster_labels[i] == 0 or cluster_labels[i] == 1]
 
     cluster_train_feas = [cluster_feas[i] for i in range(n_total_clusters) if i in cluster_train_ids]
     # size: [num_example, fea_dim]
     cluster_train_feas = np.concatenate(cluster_train_feas, axis=0)
-    
-    cluster_train_labels = [cluster_labels[i] * np.ones([cluster_nflakes[i],1]) for i in range(n_total_clusters) if i in cluster_train_ids]
+
+    cluster_train_labels = [cluster_labels[i] * np.ones([cluster_nflakes[i], 1]) for i in range(n_total_clusters) if
+                            i in cluster_train_ids]
     cluster_train_labels = np.concatenate(cluster_train_labels, axis=0)
     cluster_train_labels = cluster_train_labels[:, 0]
 
@@ -389,6 +404,18 @@ def classify_one_subexp(anno_file, flakeglue_anno_file, subexp_dir, rslt_dir, fl
     # size: [num_example, fea_dim + 1]
     cluster_train_feas = np.concatenate([cluster_train_feas, np.ones([cluster_train_feas.shape[0], 1])], axis=1)
 
+    all_test_imgflake1 = []
+    for c in cluster_test_ids:
+        img_nflake = len(img_flakes[c])
+        for i in range(img_nflake):
+            all_test_imgflake1.append('%s-%d' % (img_names[c], i))
+
+    all_test_imgflake2 = []
+    for i in range(n_indi_flakes):
+        oriname = indi_flake_oriname_newflakeids[i][0]
+        newflakeid = indi_flake_oriname_newflakeids[i][1]
+        ori_idx = img_names.index(oriname)
+        all_test_imgflake2.append('%s-%d' % (oriname, newflakeid))
 
     if not os.path.exists(os.path.join(online_save_path, 'all_test_feas.p')):
         all_test_feas = []
@@ -396,9 +423,9 @@ def classify_one_subexp(anno_file, flakeglue_anno_file, subexp_dir, rslt_dir, fl
         for c in cluster_test_ids:
             img_nflake = len(img_flakes[c])
             for i in range(img_nflake):
-                all_test_feas.append(np.concatenate([ img_flakes[c][i]['flake_shape_fea'],
-                                                img_flakes[c][i]['flake_color_fea']]))
-                all_test_imgflake.append('%s-%d'%(img_names[c], i))
+                all_test_feas.append(np.concatenate([img_flakes[c][i]['flake_shape_fea'],
+                                                     img_flakes[c][i]['flake_color_fea']]))
+                all_test_imgflake.append('%s-%d' % (img_names[c], i))
 
                 draw_img(img_flakes[c][i], online_save_path, img_names[c], i)
 
@@ -406,9 +433,9 @@ def classify_one_subexp(anno_file, flakeglue_anno_file, subexp_dir, rslt_dir, fl
             oriname = indi_flake_oriname_newflakeids[i][0]
             newflakeid = indi_flake_oriname_newflakeids[i][1]
             ori_idx = img_names.index(oriname)
-            all_test_feas.append(np.concatenate([ img_flakes[ori_idx][newflakeid]['flake_shape_fea'],
-                                            img_flakes[ori_idx][newflakeid]['flake_color_fea']]))
-            all_test_imgflake.append('%s-%d'%(oriname, newflakeid))
+            all_test_feas.append(np.concatenate([img_flakes[ori_idx][newflakeid]['flake_shape_fea'],
+                                                 img_flakes[ori_idx][newflakeid]['flake_color_fea']]))
+            all_test_imgflake.append('%s-%d' % (oriname, newflakeid))
 
             draw_img(img_flakes[ori_idx][newflakeid], online_save_path, oriname, newflakeid)
 
@@ -421,15 +448,13 @@ def classify_one_subexp(anno_file, flakeglue_anno_file, subexp_dir, rslt_dir, fl
         to_save = dict()
         for i in range(len(all_test_feas)):
             to_save[all_test_imgflake[i]] = all_test_feas[i]
-        pickle.dump(to_save, open(os.path.join(online_save_path, 'all_test_feas.p'), 'wb'))#,  protocol=0)
+        pickle.dump(to_save, open(os.path.join(online_save_path, 'all_test_feas.p'), 'wb'))  # ,  protocol=0)
         with open(os.path.join(online_save_path, 'all_test_names.txt'), 'w') as f:
             f.write('\n'.join(all_test_imgflake))
 
-
-
     # save classifier:
-    if os.path.exists(flake_save_path + 'thickness_classifier-%s.p'%(method)):
-        clf = pickle.load(open(flake_save_path + 'thickness_classifier-%s.p'%(method), 'rb'))['clf']
+    if os.path.exists(flake_save_path + 'thickness_classifier-%s.p' % (method)):
+        clf = pickle.load(open(flake_save_path + 'thickness_classifier-%s.p' % (method), 'rb'))['clf']
     else:
         if method == 'linearsvm':
             clf = LinearSVC(random_state=0, tol=1e-5, fit_intercept=False)
@@ -449,9 +474,11 @@ def classify_one_subexp(anno_file, flakeglue_anno_file, subexp_dir, rslt_dir, fl
         to_save['coef'] = clf.coef_.transpose()
         to_save['Cn_inv'] = Cn_inv
 
-        pickle.dump(to_save, open(flake_save_path + 'thickness_classifier-%s.p'%(method), 'wb'))
-        pickle.dump(to_save, open(os.path.join(online_save_path, 'thickness_classifier-%s.p'%(method)), 'wb'))#,  protocol=0)
-        pickle.dump(to_save, open(os.path.join(online_save_path, 'thickness_classifier-%s_b--1.p'%(method)), 'wb'))#,  protocol=0)
+        pickle.dump(to_save, open(flake_save_path + 'thickness_classifier-%s.p' % (method), 'wb'))
+        pickle.dump(to_save, open(os.path.join(online_save_path, 'thickness_classifier-%s.p' % (method)),
+                                  'wb'))  # ,  protocol=0)
+        pickle.dump(to_save, open(os.path.join(online_save_path, 'thickness_classifier-%s_b--1.p' % (method)),
+                                  'wb'))  # ,  protocol=0)
 
         # print(clf.coef_)
         print(np.sum(np.abs(np.matmul(Cn_inv, XiYi) - clf.coef_)))
@@ -462,10 +489,10 @@ def classify_one_subexp(anno_file, flakeglue_anno_file, subexp_dir, rslt_dir, fl
 
     # for c in cluster_test_ids:
     #     test_one_cluster(cluster_imgflake_ids[c], cluster_feas[c], mean_fea, clf, img_flakes, new_cluster_save_path, clustername_labels[c][0])
-    
 
     # for i in range(len(img_names)):
     #     test_one_image(clf, img_flakes[i], mean_fea, subexp_dir, img_names[i], new_img_save_path)
+
 
 def main():
     data_path = '../data/data_jan2019'
@@ -474,9 +501,10 @@ def main():
     anno_file = '../data/data_jan2019_anno/anno_cluster_YoungJaeShinSamples_4_useryoungjae.db'
     flakeglue_anno_file = '../data/data_jan2019_anno/anno_flakeglue_YoungJaeShinSamples_4_useryoungjae.db'
 
-    cluster_path = '../results/data_jan2019_script/cluster_sort_%d'%(hyperparams['size_thre'])
-    testclf_cluster_path = '../results/data_jan2019_script/cluster_sort_%d_testclf0_cluster'%(hyperparams['size_thre'])
-    online_path = '../results/data_jan2019_script/cluster_sort_%d_thickness_online'%(hyperparams['size_thre'])
+    cluster_path = '../results/data_jan2019_script/cluster_sort_%d' % (hyperparams['size_thre'])
+    testclf_cluster_path = '../results/data_jan2019_script/cluster_sort_%d_testclf0_cluster' % (
+    hyperparams['size_thre'])
+    online_path = '../results/data_jan2019_script/cluster_sort_%d_thickness_online' % (hyperparams['size_thre'])
     # testclf_img_path = '../results/data_jan2019_script/cluster_sort_%d_testclf0_oriimg'%(hyperparams['size_thre'])
 
     exp_names = os.listdir(data_path)
@@ -503,23 +531,26 @@ def main():
             # img_names = os.listdir(os.path.join(data_path, exp_name, sname))
             # img_names.sort()
             # img_names = img_names[args.img_sid:args.img_eid]
-            
-            flake_save_path = os.path.join(testclf_cluster_path, exp_name+sname)
-            cluster_save_path = os.path.join(cluster_path, exp_name, sname, '%s_%s'%(hyperparams['cluster_fea'], hyperparams['cluster_method']))
+
+            flake_save_path = os.path.join(testclf_cluster_path, exp_name + sname)
+            cluster_save_path = os.path.join(cluster_path, exp_name, sname,
+                                             '%s_%s' % (hyperparams['cluster_fea'], hyperparams['cluster_method']))
             testclf_cluster_save_path = os.path.join(testclf_cluster_path, exp_name, sname + '_' + method)
             online_save_path = os.path.join(online_path, exp_name, sname + '_' + method)
             # testclf_img_save_path = os.path.join(testclf_img_path, exp_name, sname + '_' + method)
 
             if not os.path.exists(testclf_cluster_save_path):
                 os.makedirs(testclf_cluster_save_path)
-            
+
             # if not os.path.exists(testclf_img_save_path):
             #     os.makedirs(testclf_img_save_path)
 
             if not os.path.exists(online_save_path):
                 os.makedirs(online_save_path)
-            
-            classify_one_subexp(anno_file, flakeglue_anno_file, os.path.join(data_path, exp_name, sname), os.path.join(result_path, exp_name, sname), flake_save_path, cluster_save_path, testclf_cluster_save_path, method, online_save_path)
+
+            classify_one_subexp(anno_file, flakeglue_anno_file, os.path.join(data_path, exp_name, sname),
+                                os.path.join(result_path, exp_name, sname), flake_save_path, cluster_save_path,
+                                testclf_cluster_save_path, method, online_save_path)
 
 
 if __name__ == '__main__':

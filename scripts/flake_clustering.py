@@ -88,6 +88,7 @@ def load_one_image(img_name, info_name):
 # process one sub exp, read all the data, and do clustering
 def cluster_one_subexp(subexp_dir, rslt_dir, flake_save_path, cluster_save_path):
     img_names = os.listdir(subexp_dir)
+    img_names = [n_i for n_i in img_names if n_i[0] != '.']
     img_names.sort()
     print('process ' + subexp_dir)
     print('n images: %d'%(len(img_names)) )

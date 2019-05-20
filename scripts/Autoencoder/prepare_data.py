@@ -29,14 +29,14 @@ hyperparams = { 'size_thre': 784, # after detect foreground regions, filter them
                 }
 
 
-def process_one_img(ins_name, img_dir, rslt_dir, ae_img_path, ae_mask_path, output_img_size=256):
+def process_one_img(ins_name, img_dir, rslt_dir, ae_img_path, ae_mask_path, ae_contrast_path, bk_gray, bk_hsv, output_img_size=256):
     ins_name = ins_name.split('.')[0]
     # load the detected flake and get features for the flake
     flake_info = pickle.load(open(os.path.join(rslt_dir, ins_name+'.p'), 'rb'))
     image = Image.open(os.path.join(img_dir, ins_name+'.tif'))
     im_gray = np.array(image.convert('L', (0.2989, 0.5870, 0.1140, 0))).astype('float')
     imH, imW = im_gray.shape
-    # im_hsv = np.array(image.convert('HSV')).astype('float')
+    im_hsv = np.array(image.convert('HSV')).astype('float')
     im_rgb = np.array(image).astype(np.uint8)
     # build a list of flakes
     num_flakes = len(flake_info['flakes'])
@@ -70,9 +70,15 @@ def process_one_img(ins_name, img_dir, rslt_dir, ae_img_path, ae_mask_path, outp
             mask[mask==1] = 255
             f_mask = np.zeros([output_img_size, output_img_size], dtype=np.uint8)
             f_mask[r_min:r_max, c_min:c_max] = mask[flake_large_bbox[0]: flake_large_bbox[1], flake_large_bbox[2]:flake_large_bbox[3]]
+            f_contrast = np.zeros([output_img_size, output_img_size, 3], dtype=np.uint8)
+            f_contrast[r_min:r_max, c_min:c_max, 0] = np.abs(im_gray[flake_large_bbox[0]: flake_large_bbox[1], flake_large_bbox[2]:flake_large_bbox[3]] - \
+                                                        bk_gray[flake_large_bbox[0]: flake_large_bbox[1], flake_large_bbox[2]:flake_large_bbox[3]] )
+            f_contrast[r_min:r_max, c_min:c_max, 1] = np.abs(im_hsv[flake_large_bbox[0]: flake_large_bbox[1], flake_large_bbox[2]:flake_large_bbox[3], 0] - \
+                                                        bk_hsv[flake_large_bbox[0]: flake_large_bbox[1], flake_large_bbox[2]:flake_large_bbox[3], 0])
 
             cv2.imwrite(os.path.join(ae_img_path, '%s-%d.png' % (ins_name, cnt)), np.flip(f_img, 2))
             cv2.imwrite(os.path.join(ae_mask_path, '%s-%d.png' % (ins_name, cnt)), f_mask)
+            cv2.imwrite(os.path.join(ae_contrast_path, '%s-%d.png' % (ins_name, cnt)), f_contrast)
             cnt += 1
 
 # process all the flakes
@@ -82,6 +88,7 @@ def main():
     ae_img_path = '../../results/data_jan2019_script/ae_img/'
     # ae_img_hsv_path = '../../results/data_jan2019_script/ae_img_hsv'
     ae_mask_path = '../../results/data_jan2019_script/ae_mask/'
+    ae_contrast_path = '../../results/data_jan2019_script/ae_contrast/'
 
     exp_names = os.listdir(data_path)
     exp_names.sort()
@@ -93,12 +100,20 @@ def main():
     if not os.path.exists(ae_mask_path):
         os.makedirs(ae_mask_path)
 
+    if not os.path.exists(ae_contrast_path):
+        os.makedirs(ae_contrast_path)
+
     for d in range(args.exp_sid, args.exp_eid):
         exp_name = exp_names[d]
         subexp_names = os.listdir(os.path.join(data_path, exp_name))
+        bk_name = [sname for sname in subexp_names if 'FieldRef_50X.tif' in sname]
+        bk_name = os.path.join(data_path, exp_name, bk_name[0])
         subexp_names = [sname for sname in subexp_names if os.path.isdir(os.path.join(data_path, exp_name, sname))]
         subexp_names.sort()
 
+        bk_image = Image.open(bk_name)
+        bk_gray = np.array(bk_image.convert('L', (0.2989, 0.5870, 0.1140, 0))).astype('float')
+        bk_hsv = np.array(bk_image.convert('HSV')).astype('float')
         # process each subexp
         for s_d in range(args.subexp_sid, min(len(subexp_names), args.subexp_eid)):
             sname = subexp_names[s_d]
@@ -108,28 +123,32 @@ def main():
 
             sub_ae_img_path = os.path.join(ae_img_path, exp_name, sname)
             sub_ae_mask_path = os.path.join(ae_mask_path, exp_name, sname)
+            sub_ae_contrast_path = os.path.join(ae_contrast_path, exp_name, sname)
+
             if not os.path.exists(sub_ae_img_path):
                 os.makedirs(sub_ae_img_path)
             if not os.path.exists(sub_ae_mask_path):
                 os.makedirs(sub_ae_mask_path)
+            if not os.path.exists(sub_ae_contrast_path):
+                os.makedirs(sub_ae_contrast_path)
 
             img_names = os.listdir(img_dir_name)
             img_names.sort()
             # for i_d in range(len(img_names)):
             #     process_one_img(img_names[i_d], img_dir_name, rslt_dir_name, sub_ae_img_path, sub_ae_mask_path, output_img_size=256)
 
-            Parallel(n_jobs=args.n_jobs)(delayed(process_one_img)(img_names[i_d], img_dir_name, rslt_dir_name, sub_ae_img_path, sub_ae_mask_path, output_img_size=256)
+            Parallel(n_jobs=args.n_jobs)(delayed(process_one_img)(img_names[i_d], img_dir_name, rslt_dir_name, sub_ae_img_path, sub_ae_mask_path, sub_ae_contrast_path, bk_gray, bk_hsv, output_img_size=256)
                                                       for i_d in range(len(img_names)))
             #
 
 
 # load the detected flake and get features for the flake
-def load_one_image(img_name, info_name, output_img_size=256):
+def load_one_image(img_name, info_name, bk_gray, bk_hsv, output_img_size=256):
     flake_info = pickle.load(open(info_name, 'rb'))
     image = Image.open(img_name)
     im_gray = np.array(image.convert('L', (0.2989, 0.5870, 0.1140, 0))).astype('float')
     imH, imW = im_gray.shape
-    # im_hsv = np.array(image.convert('HSV')).astype('float')
+    im_hsv = np.array(image.convert('HSV')).astype('float')
     im_rgb = np.array(image).astype('float')
     # build a list of flakes
     num_flakes = len(flake_info['flakes'])
@@ -161,10 +180,16 @@ def load_one_image(img_name, info_name, output_img_size=256):
             mask[mask==1] = 255
             f_mask = np.zeros([output_img_size, output_img_size], dtype=np.uint8)
             f_mask[r_min:r_max, c_min:c_max] = mask[flake_large_bbox[0]: flake_large_bbox[1], flake_large_bbox[2]:flake_large_bbox[3]]
+            f_contrast = np.zeros([output_img_size, output_img_size, 3], dtype=np.uint8)
+            f_contrast[r_min:r_max, c_min:c_max, 0] = np.abs(im_gray[flake_large_bbox[0]: flake_large_bbox[1], flake_large_bbox[2]:flake_large_bbox[3]] - \
+                                                            bk_gray[flake_large_bbox[0]: flake_large_bbox[1], flake_large_bbox[2]:flake_large_bbox[3]])
+            f_contrast[r_min:r_max, c_min:c_max, 1] = np.abs(im_hsv[flake_large_bbox[0]: flake_large_bbox[1], flake_large_bbox[2]:flake_large_bbox[3], 0] - \
+                                                            bk_hsv[flake_large_bbox[0]: flake_large_bbox[1], flake_large_bbox[2]:flake_large_bbox[3], 0])
 
             # flakes[i]['flake_large_bbox'] = flake_large_bbox
             flakes[i]['flake_img'] = f_img
             flakes[i]['flake_mask'] = f_mask
+            flakes[i]['flake_contrast'] = f_contrast
 
     flakes = [flakes[j] for j in large_flake_idxs]
     return flakes
@@ -187,8 +212,9 @@ def main_label():
     # anno_file = '../../data/data_jan2019_anno/anno_flakeglue_useryoungjae.db'
     data_path = os.path.join('../../data/data_jan2019', subexp_name)
     result_path = os.path.join('../../results/data_jan2019_script/mat', subexp_name)
-    output_path = '../../results/data_jan2019_script/ae_label_img'
-    output_mask_path = '../../results/data_jan2019_script/ae_label_mask'
+    output_path = '../../results/data_jan2019_script/ae_complete_label_img'
+    output_mask_path = '../../results/data_jan2019_script/ae_complete_label_mask'
+    output_contrast_path = '../../results/data_jan2019_script/ae_complete_label_contrast'
 
     if not os.path.exists(output_path):
         os.makedirs(output_path)
@@ -200,16 +226,28 @@ def main_label():
         os.makedirs(os.path.join(output_mask_path, 'train'))
         os.makedirs(os.path.join(output_mask_path, 'val'))
 
-    flake_save_name = '../../results/data_jan2019_script/flakeglue_clf/YoungJaeShinSamples/4/train_val_split.p'
+    if not os.path.exists(output_contrast_path):
+        os.makedirs(output_contrast_path)
+        os.makedirs(os.path.join(output_contrast_path, 'train'))
+        os.makedirs(os.path.join(output_contrast_path, 'val'))
+
+
+    # flake_save_name = '../../results/data_jan2019_script/flakeglue_clf/YoungJaeShinSamples/4/train_val_split.p'
+    flake_save_name = '../../results/data_jan2019_script/thickthinglue_clf_complete/YoungJaeShinSamples/4/train_val_split.p'
     to_load = pickle.load(open(flake_save_name, 'rb'))
     train_names = to_load['train_names']
     # train_labels = to_load['train_labels']
     val_names = to_load['val_names']
     # val_labels = to_load['val_labels']
 
+    bk_name = '../../data/data_jan2019/YoungJaeShinSamples/SAMP4_FieldRef_50X.tif'
+    bk_image = Image.open(bk_name)
+    bk_gray = np.array(bk_image.convert('L', (0.2989, 0.5870, 0.1140, 0))).astype('float')
+    bk_hsv = np.array(bk_image.convert('HSV')).astype('float')
+
     img_names = os.listdir(data_path)
     img_names.sort()
-    img_flakes = Parallel(n_jobs=args.n_jobs)(delayed(load_one_image)(os.path.join(data_path, img_names[i]),os.path.join(result_path, img_names[i][:-4] + '.p'))
+    img_flakes = Parallel(n_jobs=args.n_jobs)(delayed(load_one_image)(os.path.join(data_path, img_names[i]),os.path.join(result_path, img_names[i][:-4] + '.p'), bk_gray, bk_hsv)
                                                         for i in range(len(img_names)))
     print('loading done')
     # load corresponding flakes
@@ -220,10 +258,12 @@ def main_label():
     for i in range(len(train_flakes)):
         cv2.imwrite(os.path.join(output_path, 'train', '%d.png' % (i)), np.flip(train_flakes[i]['flake_img'], 2))
         cv2.imwrite(os.path.join(output_mask_path, 'train', '%d.png' % (i)), train_flakes[i]['flake_mask'])
+        cv2.imwrite(os.path.join(output_contrast_path, 'train', '%d.png' % (i)), train_flakes[i]['flake_contrast'])
 
     for i in range(len(val_flakes)):
         cv2.imwrite(os.path.join(output_path, 'val', '%d.png' % (i)), np.flip(val_flakes[i]['flake_img'], 2))
         cv2.imwrite(os.path.join(output_mask_path, 'val', '%d.png' % (i)), val_flakes[i]['flake_mask'])
+        cv2.imwrite(os.path.join(output_contrast_path, 'val', '%d.png' % (i)), val_flakes[i]['flake_contrast'])
 
 
 if __name__ == '__main__':

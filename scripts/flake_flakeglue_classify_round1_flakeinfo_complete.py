@@ -1,5 +1,6 @@
 """
-classify thin /thick flakes
+Complete annotation
+classify flake, glue
 use the detailed labeled dataset, create a train/validation set
 train different classifiers. test and visualize their performance.
 
@@ -41,16 +42,60 @@ from sklearn.linear_model import RidgeClassifier
 import random
 
 
-labelmaps = {'thin': 1, 'thick': -1, 'others': 0}
+# labelmaps = {'thin': 1, 'thick': -1, 'others': 0}
+labelmaps = {'thin': 0, 'thick': 0, 'glue': 1, 'mixed cluster': 3, 'others': 4}
+labelmapsback = { 0: 'flake', 1: 'glue'}
 
 hyperparams = { 'clf_method': 'linearsvm', # which classifier to use (linear): 'ridge', 'linearsvm', 'rbfkernelsvm'
                 'C': 5, # parameter to tune for SVM
                 }
 
 
-# create dataset
+# read dataset
 def readdb(dbname):
     conn = sqlite3.connect(dbname)
+    c = conn.cursor()
+    # c.execute('PRAGMA TABLE_INFO({})'.format('annotab'))
+    # info = c.fetchall()
+    # col_dict = dict()
+    # for col in info:
+    #     col_dict[col[1]] = 0
+
+    c.execute('SELECT oriname_newflakeid, indlabel, labelfromcluster FROM annotab')
+    db = c.fetchall()
+    num_empty = 0
+
+    itemname_labels = []
+    for i in range(len(db)):
+        name_i = db[i][0]
+        label_name_i = db[i][1]
+        if label_name_i is not None:
+            label_i = labelmaps[label_name_i]
+            if label_i in [0, 1]:
+                itemname_labels.append([name_i, label_i])
+        else:
+            num_empty += 1
+
+    print('empty annotation: %d' %(num_empty))
+    return itemname_labels
+
+
+# create db
+def updatedb(all_dbname, thickthin_oriname_newflakeids):
+    conn = sqlite3.connect(all_dbname)
+    c = conn.cursor()
+
+    # add the first round labeled thin/thick flake
+    num_thickthin = len(thickthin_oriname_newflakeids)
+    for i in range(num_thickthin):
+        c.execute('''UPDATE annotab SET indlabel='%s' WHERE oriname_newflakeid='%s' ''' % (thickthin_oriname_newflakeids[i][1], thickthin_oriname_newflakeids[i][0]))
+        conn.commit()
+    print('label from thin/thick: %d' % (num_thickthin))
+
+
+# load the incomplete thin/thick annotation
+def readthickthindb(thickthin_dbname):
+    conn = sqlite3.connect(thickthin_dbname)
     c = conn.cursor()
     c.execute('PRAGMA TABLE_INFO({})'.format('annotab'))
     info = c.fetchall()
@@ -61,42 +106,43 @@ def readdb(dbname):
     c.execute('SELECT * FROM annotab')
     db = c.fetchall()
 
-    itemname_labels = []
+    oriname_newflakeids = []
     for i in range(len(db)):
-        # print(db[i][1])
-        # print(labelmaps[db[i][1]])
-        name_i = db[i][0]
-        label_i = labelmaps[db[i][1]]
-        if label_i != 0:
-            itemname_labels.append([name_i, label_i])
-    return itemname_labels
+        oriname_newflakeid = db[i][0]
+        ori_name, newflakeid = oriname_newflakeid.split('-')
+        newflakeid = int(newflakeid)
+        label = db[i][1]
+        # if label == 'thin' or label == 'thick':
+        oriname_newflakeids.append([oriname_newflakeid, label])
+
+    return oriname_newflakeids
 
 # split into train and val
 def split_trainval(itemname_labels):
     num_total = len(itemname_labels)
     train_ratio = 0.8
     all_labels = [itemname_labels[i][1] for i in range(num_total)]
-    pos_idxs = [i for i in range(num_total) if all_labels[i]==1]
-    neg_idxs = [i for i in range(num_total) if all_labels[i]==-1]
-    num_pos = len(pos_idxs)
-    num_neg = len(neg_idxs)
-    print('total: %d, pos: %d, neg: %d'%(num_total, num_pos, num_neg))
+    flake_idxs = [i for i in range(num_total) if all_labels[i]==0]
+    glue_idxs = [i for i in range(num_total) if all_labels[i]==1]
+    num_flake = len(flake_idxs)
+    num_glue = len(glue_idxs)
+    print('total: %d, flake: %d, glue: %d'%(num_total, num_flake, num_glue))
 
     random.seed(0)
-    random.shuffle(pos_idxs)
-    random.shuffle(neg_idxs)
+    random.shuffle(flake_idxs)
+    random.shuffle(glue_idxs)
 
-    tr_pos_idxs = pos_idxs[:int(train_ratio*num_pos)]
-    tr_neg_idxs = neg_idxs[:int(train_ratio*num_neg)]
+    tr_flake_idxs = flake_idxs[:int(train_ratio*num_flake)]
+    tr_glue_idxs = glue_idxs[:int(train_ratio*num_glue)]
 
-    val_pos_idxs = pos_idxs[int(train_ratio*num_pos)+1:]
-    val_neg_idxs = neg_idxs[int(train_ratio*num_neg)+1:]
+    val_flake_idxs = flake_idxs[int(train_ratio * num_flake):]
+    val_glue_idxs = glue_idxs[int(train_ratio * num_glue):]
 
-    tr_idxs = tr_pos_idxs + tr_neg_idxs
+    tr_idxs = tr_flake_idxs + tr_glue_idxs
     train_names = [itemname_labels[i][0] for i in tr_idxs]
     train_labels = [itemname_labels[i][1] for i in tr_idxs]
 
-    val_idxs = val_pos_idxs + val_neg_idxs
+    val_idxs = val_flake_idxs + val_glue_idxs
     val_names = [itemname_labels[i][0] for i in val_idxs]
     val_labels = [itemname_labels[i][1] for i in val_idxs]
 
@@ -153,6 +199,7 @@ def locate_flakes(item_names, img_flakes, img_names):
 
 def vis_error(pred_cls, pred_scores, gt_cls, flakes, img_save_path, item_names, prefix):
     num = len(pred_cls)
+
     for i in range(num):
         if pred_cls[i] != gt_cls[i]:
             fig = plt.figure()
@@ -164,26 +211,50 @@ def vis_error(pred_cls, pred_scores, gt_cls, flakes, img_save_path, item_names, 
             if pred_cls[i] == 1:
                 # thin, red
                 contour_img = cv2.drawContours(flakes[i]['flake_img'], contours, -1, (255,0,0), 2)
-            if pred_cls[i] == -1:
+            if pred_cls[i] == 0:
                 # thick, green
                 contour_img = cv2.drawContours(flakes[i]['flake_img'], contours, -1, (0,255,0), 2)
+            if pred_cls[i] == 2:
+                # glue, white
+                contour_img = cv2.drawContours(flakes[i]['flake_img'], contours, -1, (255, 255, 255), 2)
+
             ax.imshow(contour_img)
 
             ax.axis('off')
-            fig.savefig(os.path.join(img_save_path, '%s_gt_%d_pred_%.2f_%s.png'%(prefix, gt_cls[i], pred_scores[i], item_names[i] )))
+            # print(prefix, gt_cls[i], pred_scores[i], item_names[i])
+            # fig.savefig(os.path.join(img_save_path, '%s_gt_%d_pred_%.2f_%s.png'%(prefix, gt_cls[i], pred_scores[i], item_names[i] )))
+            fig.savefig(os.path.join(img_save_path, '%s_gt_%d_pred_%.2f_%s.png'%(prefix, gt_cls[i], pred_scores[i][gt_cls[i]], item_names[i] )))
 
             plt.close()
 
 
 def main():
     subexp_name = 'YoungJaeShinSamples/4'
-    anno_file = '../data/data_jan2019_anno/anno_thickthin_YoungJaeShinSamples_4_useryoungjae.db'
+    anno_incomplete_file = '../data/data_jan2019_anno/anno_all_incomplete_YoungJaeShinSamples_4_useryoungjae.db'
+    # anno_complete_file = '../data/data_jan2019_anno/anno_all_YoungJaeShinSamples_4_useryoungjae.db'
+    # anno_complete_file = '../data/data_jan2019_anno/anno_all_YoungJaeShinSamples_4_usertest0123.db'
+    anno_complete_file = '../data/data_jan2019_anno/anno_all_incomplete_YoungJaeShinSamples_4_useryoungjae.db'
+    # thickthin_anno_file = '../data/data_jan2019_anno/anno_thickthin_v2_YoungJaeShinSamples_4_useryoungjae.db'
+    thickthin_anno_file = '../data/data_jan2019_anno/anno_thickthin_v2_YoungJaeShinSamples_4_usertest0123.db'
+
     data_path = os.path.join('../data/data_jan2019', subexp_name)
     result_path = os.path.join('../results/data_jan2019_script/mat', subexp_name)
-    clf_path = os.path.join('../results/data_jan2019_script/thickthin_clf', subexp_name)
+    clf_path = os.path.join('../results/data_jan2019_script/flakeglue_clf_incomplete', subexp_name)
     if not os.path.exists(clf_path):
         os.makedirs(clf_path)
-    
+
+    # merge the annotation
+    if not os.path.exists(anno_complete_file):
+        os.system('cp %s %s' % (anno_incomplete_file, anno_complete_file))
+
+        # update the annotation into the all annotation
+        thickthin_oriname_newflakeids = readthickthindb(thickthin_anno_file)
+        n_thickthin_flakes = len(thickthin_oriname_newflakeids)
+        print(n_thickthin_flakes)
+
+        updatedb(anno_complete_file, thickthin_oriname_newflakeids)
+
+
     # get the train/val split
     split_name = os.path.join(clf_path, 'train_val_split.p')
     if os.path.exists(split_name):
@@ -193,7 +264,7 @@ def main():
         val_names = to_load['val_names']
         val_labels = to_load['val_labels']
     else:
-        itemname_labels = readdb(anno_file)
+        itemname_labels = readdb(anno_complete_file)
         train_names, train_labels, val_names, val_labels = split_trainval(itemname_labels)
         to_save = dict()
         to_save['train_names'] = train_names
@@ -245,6 +316,10 @@ def main():
     # normalize data
     mean_feat = np.mean(train_feats, axis=0, keepdims=True)
     std_feat = np.std(train_feats, axis=0, keepdims=True)
+    norm_fea = {}
+    norm_fea['mean'] = mean_feat
+    norm_fea['std'] = std_feat
+    pickle.dump(norm_fea, open(os.path.join(clf_path, 'normfea.p'), 'wb'))
     train_feats -= mean_feat
     train_feats = train_feats / std_feat
     # train_feats = train_feats / np.linalg.norm(train_feats, 2, axis=1, keepdims=True)
@@ -259,14 +334,14 @@ def main():
     method = hyperparams['clf_method']
     C = hyperparams['C']
     # C = 10
-    Cs = [0.001]#, 0.01, 0.1, 0.5, 1, 5, 10, ]
+    Cs = [0.001, 0.01, 0.1, 0.5, 1, 5, 10, ]
     for C in Cs:
         clf_save_path = os.path.join(clf_path, 'feanorm_classifier-%s-%f.p'%(method, C))
         if os.path.exists(clf_save_path):
             clf = pickle.load(open(clf_save_path, 'rb'))
         else:
             if method == 'linearsvm':
-                clf = LinearSVC(random_state=0, tol=1e-5, C=C)
+                clf = LinearSVC(random_state=0, tol=1e-5, C=C, max_iter=5e4)
                 clf.fit(train_feats, train_labels)
             elif method == 'ridge':
                 clf = RidgeClassifier(random_state=0, alpha=C)
@@ -281,23 +356,36 @@ def main():
 
         train_pred_cls = clf.predict(train_feats)
         train_pred_scores = clf.decision_function(train_feats)
-        pred_cls = clf.predict(val_feats)
-        pred_scores = clf.decision_function(val_feats)
-        clf_vis_path = os.path.join('../results/data_jan2019_script/thickthin_clf', subexp_name, 'vis', 'feanorm_%s-%f'%(method, C))
+        val_pred_cls = clf.predict(val_feats)
+        val_pred_scores = clf.decision_function(val_feats)
+        clf_vis_path = os.path.join(clf_path, subexp_name, 'vis', 'feanorm_%s-%f'%(method, C))
         if not os.path.exists(clf_vis_path):
             os.makedirs(clf_vis_path)
 
-        from sklearn.metrics import accuracy_score
-        from sklearn.metrics import average_precision_score
+        from sklearn.metrics import accuracy_score, average_precision_score, confusion_matrix
         train_acc = accuracy_score(train_labels, train_pred_cls)
-        val_acc = accuracy_score(val_labels, pred_cls)
-        vis_error(pred_cls, pred_scores, val_labels, val_flakes, clf_vis_path, val_names, 'val')
-        vis_error(train_pred_cls, train_pred_scores, train_labels, train_flakes, clf_vis_path, train_names, 'train')
+        val_acc = accuracy_score(val_labels, val_pred_cls)
+        train_conf = confusion_matrix(train_labels, train_pred_cls)
+        train_conf = train_conf / np.sum(train_conf, 1, keepdims=True)
+        val_conf = confusion_matrix(val_labels, val_pred_cls)
+        val_conf = val_conf / np.sum(val_conf, 1, keepdims=True)
+        # # val_acc = accuracy_score(, test_pred_cls)
+        # print('train acc: %.4f' % (train_acc))
+        print(train_conf)
+        print(val_conf)
+        # vis_error(val_pred_cls, val_pred_scores, val_labels, val_flakes, clf_vis_path, val_names, 'val')
+        # vis_error(train_pred_cls, train_pred_scores, train_labels, train_flakes, clf_vis_path, train_names, 'train')
 
-        train_labels = (np.array(train_labels) + 1)//2
-        val_labels = (np.array(val_labels) + 1 ) // 2
+        # calculate map:
         train_ap = average_precision_score(train_labels, train_pred_scores)
-        val_ap = average_precision_score(val_labels, pred_scores)
+        val_ap = average_precision_score(val_labels, val_pred_scores)
+
+        # train_labels = (np.array(train_labels) + 1)//2
+        # val_labels = (np.array(val_labels) + 1 ) // 2
+        # train_ap = average_precision_score(train_labels, train_pred_scores)
+        # val_ap = average_precision_score(val_labels, pred_scores)
+        # print(train_aps)
+        # print(val_aps)
         print('%s-%f: train: %.4f, val: %.4f, ap train: %4f, ap val: %4f' %(method, C, train_acc, val_acc, train_ap, val_ap))
 
 
