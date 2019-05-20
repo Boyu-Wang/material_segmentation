@@ -78,7 +78,7 @@ def classify_one_image(img_name, info_name, classifier, norm_fea, new_img_save_p
 # process one sub exp, read all the data, and do clustering
 def classify_one_subexp(subexp_dir, rslt_dir, result_classify_save_path, norm_fea, classifier):
     img_names = os.listdir(subexp_dir)
-    img_names = [n_i for n_i in img_names if n_i[0] != '.']
+    img_names = [n_i for n_i in img_names if n_i[0]  not in ['.', '_']]
     img_names.sort()
     # print('process ' + subexp_dir)
     print('n images: %d'%(len(img_names)))
@@ -99,8 +99,8 @@ def main():
     classifier = pickle.load(open('../results/data_jan2019_script/flakeglue_clf_incomplete/YoungJaeShinSamples/4/feanorm_classifier-linearsvm-0.100000.p','rb'))
 
     exp_names = os.listdir(data_path)
+    exp_names = [ename for ename in exp_names if ename[0] not in ['.', '_']]
     exp_names.sort()
-    exp_names = [ename for ename in exp_names if ename[0] != '.']
 
     # print(exp_names)
     # exp_names = exp_names[args.exp_sid: args.exp_eid]
@@ -108,6 +108,7 @@ def main():
     for d in range(args.exp_sid, args.exp_eid):
         exp_name = exp_names[d]
         subexp_names = os.listdir(os.path.join(data_path, exp_name))
+        subexp_names = [sname for sname in subexp_names if sname[0] not in ['.', '_']]
         subexp_names = [sname for sname in subexp_names if os.path.isdir(os.path.join(data_path, exp_name, sname))]
         subexp_names.sort()
         # print(subexp_names)

@@ -188,18 +188,21 @@ def main():
     result_fig_path = '../results/data_jan2019_script/fig'
 
     exp_names = os.listdir(data_path)
+    exp_names = [ename for ename in exp_names if ename[0]  not in ['.', '_']]
     exp_names.sort()
+    # print(exp_names)
     # exp_names = exp_names[args.exp_sid: args.exp_eid]
 
     for d in range(args.exp_sid, args.exp_eid):
         exp_name = exp_names[d]
         subexp_names = os.listdir(os.path.join(data_path, exp_name))
+        subexp_names = [sname for sname in subexp_names if sname[0] not in ['.', '_']]
         # find bk image, and subexp folders
         bk_name = [sname for sname in subexp_names if 'FieldRef_50X.tif' in sname]
-        if bk_name is not None:
+        if len(bk_name)>0 :
             bk_name = os.path.join(data_path, exp_name, bk_name[0])
         else:
-            bk_name = os.path.join(data_path, 'depth1time1N1shear0velocity5/tile_x001_y007.tif')
+            bk_name = os.path.join(data_path, exp_name, 'depth1time1N1shear0velocity5/tile_x001_y007.tif')
         subexp_names = [sname for sname in subexp_names if os.path.isdir(os.path.join(data_path, exp_name, sname))]
         subexp_names.sort()
         # print(subexp_names)
@@ -213,7 +216,7 @@ def main():
             sname = subexp_names[s_d]
             print('processing images under this directory: %s'%(os.path.join(data_path, exp_name, sname)))
             img_names = os.listdir(os.path.join(data_path, exp_name, sname))
-            img_names = [n_i for n_i in img_names if n_i[0]!= '.']
+            img_names = [n_i for n_i in img_names if n_i[0] not in ['.', '_']]
             img_names.sort()
             if not os.path.exists(os.path.join(result_path, exp_name, sname)):
                 os.makedirs(os.path.join(result_path, exp_name, sname))
