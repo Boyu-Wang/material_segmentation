@@ -16,6 +16,25 @@ to install opencv3:
 export PYTHONPATH=/home/boyu/anaconda2/envs/pytorch1.0/lib/python3.6/site-packages/:$PYTHONPATH
 
 
+# Steps to run the code on new data
+You can download new data from Young Jae, and put it under the directory: data/data_jan2019/G05102019
+
+1. first run the segmentation:
+```
+ python flake_segmentation.py --exp_sid 0 --exp_eid 1 --sub_exp_sid 0 --sub_exp_eid 5
+```
+    This will process the first 5 experiments (you can change the number in sub_exp_sid and sub_exp_eid to others). The results of this script will be saved in results/data_jan2019_script/mat (for detailed pickle file), and results/data_jan2019_script/fig (for visualization).
+One thing to notice is that my code requires a background image to remove dust in the microscope. Since there is no such image, I just pick one image which looks like a background image. The image I pick is depth1time1N1shear0velocity5/tile_x001_y007.tif. This may not work for other experiments.
+ 
+2. then run the classification:
+```
+ python flake_classify.py --exp_sid 0 --exp_eid 1 --sub_exp_sid 0 --sub_exp_eid 5
+```
+    This one classifies regions segmented from the previous step. It is classify the region as thick (red boundary) / thin (blue boundary)/ glue (black boundary) using handcrafted features. White boundary means regions smaller than 784. The results of this script will be saved in results/data_jan2019_script/classify
+
+
+
+
 # Region Segmentation
 
 The method use robustfit to detect foreground regions (flakes or glue). Given a image, the algorithm tries to fit a function as background. Everything doesn't fit the background function well are identified as outlier (flake).
