@@ -457,6 +457,9 @@ if doTesting:
             train_aps.append(average_precision_score(l_train_labels, train_pred_scores[:, l]))
             val_aps.append(average_precision_score(l_val_labels, val_pred_scores[:, l]))
 
+        # train_aps = average_precision_score(train_labels, train_pred_scores)
+        # val_aps = average_precision_score(val_labels, val_pred_scores)
+
         print(train_aps)
         print(val_aps)
         print('%s-%f: train: %.4f, val: %.4f, ap train: %4f, ap val: %4f' % (method, C, train_acc, val_acc, np.mean(train_aps), np.mean(val_aps)))

@@ -1,7 +1,7 @@
 """
-Test the classifier (flake/glue) on other set of experiments
+Test the classifier (thick/thin/glue) on other set of experiments
 For classification, only consider regions larger than 28*28=784.
-Red boundary means flake, gree boundary means glue, white bounday means regions smaller than 784
+Red boundary means thick, gree boundary means thin, black boundary means glue, white bounday means regions smaller than 784
 """
 
 
@@ -29,7 +29,7 @@ parser.add_argument('--n_jobs', default=30, type=int, help='multiprocessing core
 
 args = parser.parse_args()
 
-labelmaps = {'thin': 0, 'thick': 0, 'glue': 1, 'mixed cluster': 2, 'others': 3}
+labelmaps = {'thin': 1, 'thick': 0, 'glue': 2, 'mixed cluster': 3, 'others': 4}
 
 hyperparams = { 'size_thre': 784, # after detect foreground regions, filter them based on its size. (784=28*28 corresponds to around 5 um regions)
                 'clf_method': 'linearsvm', # which classifier to use (linear): 'rigde', 'linearsvm'
@@ -62,11 +62,14 @@ def classify_one_image(img_name, info_name, classifier, norm_fea, new_img_save_p
             img_fea /= norm_fea['std']
             pred_cls = classifier.predict(img_fea)
             if pred_cls == 0:
-                # flake, red
+                # thick, red
                 color = (255, 0, 0)
             elif pred_cls == 1:
-                # glue, green
+                # thin, green
                 color = (0, 255, 0)
+            elif pred_cls == 2:
+                # glue, black
+                color = (0, 0, 0)
 
         im_tosave = cv2.drawContours(im_tosave, contours, -1, color, 2)
 
@@ -95,8 +98,10 @@ def main():
 
     result_classify_path = '../results/data_jan2019_script/classify'
 
-    norm_fea = pickle.load(open('../results/data_jan2019_script/flakeglue_clf_incomplete/YoungJaeShinSamples/4/normfea.p', 'rb'))
-    classifier = pickle.load(open('../results/data_jan2019_script/flakeglue_clf_incomplete/YoungJaeShinSamples/4/feanorm_classifier-linearsvm-0.100000.p','rb'))
+    # norm_fea = pickle.load(open('../results/data_jan2019_script/flakeglue_clf_incomplete/YoungJaeShinSamples/4/normfea.p', 'rb'))
+    # classifier = pickle.load(open('../results/data_jan2019_script/flakeglue_clf_incomplete/YoungJaeShinSamples/4/feanorm_classifier-linearsvm-0.100000.p','rb'))
+    norm_fea = pickle.load(open('../results/data_jan2019_script/thickthinglue_clf_complete/YoungJaeShinSamples/4/normfea.p', 'rb'))
+    classifier = pickle.load(open('../results/data_jan2019_script/thickthinglue_clf_complete/YoungJaeShinSamples/4/feanorm_classifier-linearsvm-0.500000.p','rb'))
 
     exp_names = os.listdir(data_path)
     exp_names = [ename for ename in exp_names if ename[0] not in ['.', '_']]
