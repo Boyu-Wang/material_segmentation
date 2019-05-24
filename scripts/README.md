@@ -23,14 +23,16 @@ You can download new data from Young Jae, and put it under the directory: data/d
 ```
  python flake_segmentation.py --exp_sid 0 --exp_eid 1 --sub_exp_sid 0 --sub_exp_eid 5
 ```
-    This will process the first 5 experiments (you can change the number in sub_exp_sid and sub_exp_eid to others). The results of this script will be saved in results/data_jan2019_script/mat (for detailed pickle file), and results/data_jan2019_script/fig (for visualization).
+This will process the first 5 experiments (you can change the number in sub_exp_sid and sub_exp_eid to others). The results of this script will be saved in results/data_jan2019_script/mat (for detailed pickle file), and results/data_jan2019_script/fig (for visualization).
+
 One thing to notice is that my code requires a background image to remove dust in the microscope. Since there is no such image, I just pick one image which looks like a background image. The image I pick is depth1time1N1shear0velocity5/tile_x001_y007.tif. This may not work for other experiments.
  
 2. then run the classification:
 ```
  python flake_classify.py --exp_sid 0 --exp_eid 1 --sub_exp_sid 0 --sub_exp_eid 5
 ```
-    This one classifies regions segmented from the previous step. It is classify the region as thick (red boundary) / thin (blue boundary)/ glue (black boundary) using handcrafted features. White boundary means regions smaller than 784. The results of this script will be saved in results/data_jan2019_script/classify
+
+This one classifies regions segmented from the previous step. It is classify the region as thick (red boundary) / thin (blue boundary)/ glue (black boundary) using handcrafted features. White boundary means regions smaller than 784. The results of this script will be saved in results/data_jan2019_script/classify
 
 
 
