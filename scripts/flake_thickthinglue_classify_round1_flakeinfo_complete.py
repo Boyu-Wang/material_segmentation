@@ -46,7 +46,7 @@ import random
 labelmaps = {'thin': 1, 'thick': 0, 'glue': 2, 'mixed cluster': 3, 'others': 4}
 labelmapsback = { 0: 'thick', 1: 'thin', 2: 'glue'}
 
-hyperparams = { 'clf_method': 'linearsvm', # which classifier to use (linear): 'ridge', 'linearsvm', 'rbfkernelsvm'
+hyperparams = { 'clf_method': 'linearsvm', # which classifier to use (linear): 'ridge', 'linearsvm', 'rbfkernelsvm', 'polysvm'
                 'C': 5, # parameter to tune for SVM
                 }
 
@@ -228,7 +228,7 @@ def vis_error(pred_cls, pred_scores, gt_cls, flakes, img_save_path, item_names, 
             ax.axis('off')
             # print(prefix, gt_cls[i], pred_scores[i], item_names[i])
             # fig.savefig(os.path.join(img_save_path, '%s_gt_%d_pred_%.2f_%s.png'%(prefix, gt_cls[i], pred_scores[i], item_names[i] )))
-            fig.savefig(os.path.join(img_save_path, '%s_gt_%d_pred_%.2f_%s.png'%(prefix, gt_cls[i], pred_scores[i][gt_cls[i]], item_names[i] )))
+            fig.savefig(os.path.join(img_save_path, '%s_gt_%s_pred_%s_%s.png'%(prefix, labelmapsback[gt_cls[i]], labelmapsback[pred_cls[i]], item_names[i] )))
 
             plt.close()
 
@@ -336,23 +336,29 @@ def main():
     # method = 'ridge'
     # method = 'rbfkernelsvm'
     method = hyperparams['clf_method']
+    print(method)
     C = hyperparams['C']
     # C = 10
-    Cs = [0.001, 0.01, 0.1, 0.5, 1, 5, 10, ]
+    Cs = [0.001, 0.01, 0.1, 0.25, 0.5, 0.75, 1, 2.5, 5, 10, 50, 100]
     for C in Cs:
-        clf_save_path = os.path.join(clf_path, 'feanorm_classifier-%s-%f.p'%(method, C))
+        clf_save_path = os.path.join(clf_path, 'feanorm_weighted_classifier-%s-%f.p'%(method, C))
         if os.path.exists(clf_save_path):
             clf = pickle.load(open(clf_save_path, 'rb'))
         else:
             if method == 'linearsvm':
-                clf = LinearSVC(random_state=0, tol=1e-5, C=C, max_iter=5e4)
+                # clf = LinearSVC(random_state=0, tol=1e-5, C=C, max_iter=5e4, class_weight='balanced')
+                clf = LinearSVC(random_state=0, tol=1e-5, C=C, max_iter=9e4, class_weight={0:1, 1:5, 2:1})#, multi_class='crammer_singer')
                 clf.fit(train_feats, train_labels)
             elif method == 'ridge':
                 clf = RidgeClassifier(random_state=0, alpha=C)
                 clf.fit(train_feats, train_labels)
             elif method == 'rbfkernelsvm':
-                clf = SVC(kernel='rbf', C=C, tol=1e-5, gamma='auto')
+                clf = SVC(kernel='rbf', C=C, tol=1e-5, gamma=0.03)#, class_weight={0:1, 1:5, 2:1})
                 clf.fit(train_feats, train_labels)
+            elif method == 'polysvm':
+                clf = SVC(kernel='poly', C=C, tol=1e-5, gamma='auto', class_weight={0:1, 1:5, 2:1})
+                clf.fit(train_feats, train_labels)
+
             else:
                 raise NotImplementedError
 
@@ -362,28 +368,33 @@ def main():
         train_pred_scores = clf.decision_function(train_feats)
         val_pred_cls = clf.predict(val_feats)
         val_pred_scores = clf.decision_function(val_feats)
-        clf_vis_path = os.path.join(clf_path, subexp_name, 'vis', 'feanorm_%s-%f'%(method, C))
+        clf_vis_path = os.path.join(clf_path, subexp_name, 'vis', 'feanorm_weighted_%s-%f'%(method, C))
         if not os.path.exists(clf_vis_path):
             os.makedirs(clf_vis_path)
 
-        from sklearn.metrics import accuracy_score, average_precision_score, confusion_matrix
+        from sklearn.metrics import accuracy_score, average_precision_score, confusion_matrix, precision_recall_curve
         train_acc = accuracy_score(train_labels, train_pred_cls)
         val_acc = accuracy_score(val_labels, val_pred_cls)
         train_conf = confusion_matrix(train_labels, train_pred_cls)
-        train_conf = train_conf / np.sum(train_conf, 1, keepdims=True)
         val_conf = confusion_matrix(val_labels, val_pred_cls)
+        print(train_conf)
+        print(val_conf)
         val_conf = val_conf / np.sum(val_conf, 1, keepdims=True)
+        train_conf = train_conf / np.sum(train_conf, 1, keepdims=True)
         # # val_acc = accuracy_score(, test_pred_cls)
         # print('train acc: %.4f' % (train_acc))
         print(train_conf)
         print(val_conf)
-        # vis_error(val_pred_cls, val_pred_scores, val_labels, val_flakes, clf_vis_path, val_names, 'val')
-        # vis_error(train_pred_cls, train_pred_scores, train_labels, train_flakes, clf_vis_path, train_names, 'train')
+        vis_error(val_pred_cls, val_pred_scores, val_labels, val_flakes, clf_vis_path, val_names, 'val')
+        vis_error(train_pred_cls, train_pred_scores, train_labels, train_flakes, clf_vis_path, train_names, 'train')
 
         # calculate map:
         uniquelabels = [0,1,2]
         train_aps = []
         val_aps = []
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        legends = ['thick', 'thin', 'glue']
         for l in uniquelabels:
             l_train_labels = [_ == l for _ in train_labels]
             l_val_labels = [_ == l for _ in val_labels]
@@ -403,6 +414,20 @@ def main():
             # l_val_pred_scores = clf.decision_function(val_feats)
             train_aps.append(average_precision_score(l_train_labels, train_pred_scores[:, l]))
             val_aps.append(average_precision_score(l_val_labels, val_pred_scores[:, l]))
+            # print(val_pred_scores[:, l])
+            # print(np.array(l_val_labels, dtype=np.uint8))
+            precision_l, recall_l, _ = precision_recall_curve(np.array(l_val_labels, dtype=np.uint8), val_pred_scores[:, l])
+            print(l, getPrecisionAtRecall(precision_l, recall_l, 0.90), getPrecisionAtRecall(precision_l, recall_l, 0.95) )
+            ax.plot(recall_l, precision_l, label=legends[l])
+
+        plt.legend()
+        plt.xlabel('Recall')
+        plt.ylabel('Precision')
+        plt.ylim([0.0, 1.05])
+        plt.xlim([0.0, 1.0])
+
+        plt.savefig(os.path.join(clf_path, 'feanorm_weighted_%s-%f.png'%(method, C)), dpi=300)
+        plt.close(fig)
 
         # train_labels = (np.array(train_labels) + 1)//2
         # val_labels = (np.array(val_labels) + 1 ) // 2
@@ -411,6 +436,14 @@ def main():
         print(train_aps)
         print(val_aps)
         print('%s-%f: train: %.4f, val: %.4f, ap train: %4f, ap val: %4f' %(method, C, train_acc, val_acc, np.mean(train_aps), np.mean(val_aps)))
+
+
+def getPrecisionAtRecall(precision, recall, rate=0.95):
+    # find the recall which is the first one that small or equal to rate.
+    for id, r in enumerate(recall):
+        if r <= rate:
+            break
+    return precision[id]
 
 
 if __name__ == '__main__':

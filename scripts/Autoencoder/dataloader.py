@@ -117,7 +117,7 @@ class completeLabelDataLoader(DD.Dataset):
             img_all = self.transforms(img_all)
             mask_img = self.transforms(mask_img)
 
-        # label is 1, -1
+        # label is 0, 1, 2
         return img_all, mask_img, self.labels[index], self.all_feas[index]
 
     def __len__(self):

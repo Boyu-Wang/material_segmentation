@@ -101,7 +101,8 @@ def main():
     # norm_fea = pickle.load(open('../results/data_jan2019_script/flakeglue_clf_incomplete/YoungJaeShinSamples/4/normfea.p', 'rb'))
     # classifier = pickle.load(open('../results/data_jan2019_script/flakeglue_clf_incomplete/YoungJaeShinSamples/4/feanorm_classifier-linearsvm-0.100000.p','rb'))
     norm_fea = pickle.load(open('../results/data_jan2019_script/thickthinglue_clf_complete/YoungJaeShinSamples/4/normfea.p', 'rb'))
-    classifier = pickle.load(open('../results/data_jan2019_script/thickthinglue_clf_complete/YoungJaeShinSamples/4/feanorm_classifier-linearsvm-0.500000.p','rb'))
+    # classifier = pickle.load(open('../results/data_jan2019_script/thickthinglue_clf_complete/YoungJaeShinSamples/4/feanorm_classifier-linearsvm-0.500000.p','rb'))
+    classifier = pickle.load(open('../results/data_jan2019_script/thickthinglue_clf_complete/YoungJaeShinSamples/4/feanorm_weighted_classifier-linearsvm-0.500000.p','rb'))
 
     exp_names = os.listdir(data_path)
     exp_names = [ename for ename in exp_names if ename[0] not in ['.', '_']]

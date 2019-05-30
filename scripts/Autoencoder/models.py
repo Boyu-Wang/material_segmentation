@@ -159,12 +159,12 @@ class Decoders(nn.Module):
 
 
 class mlp_classify(nn.Module):
-    def __init__(self, opt):
+    def __init__(self, opt, output_dim=2):
         super(mlp_classify, self).__init__()
         self.main = nn.Sequential(nn.Linear(opt.fea_dim, 32),
             nn.BatchNorm1d(32),
             nn.LeakyReLU(0.2, False),
-            nn.Linear(32, 2))
+            nn.Linear(32, output_dim))
 
     def forward(self, input):
         self.output = self.main(input)
