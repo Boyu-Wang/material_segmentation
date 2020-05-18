@@ -1,3 +1,5 @@
 # material_segmentation
 
-Please check [scripts/README.md](https://github.com/Boyu-Wang/material_segmentation/blob/master/scripts)
+Updated material segmentation with graphene classification.
+
+Please check [scripts_v2/README.md](https://github.com/Boyu-Wang/material_segmentation/blob/master/scripts)

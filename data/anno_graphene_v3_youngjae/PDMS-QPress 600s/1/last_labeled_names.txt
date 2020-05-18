@@ -1,0 +1,4 @@
+id-97_distance_1.1450_flakeid-19_size-226_600s-1_tile__ix008_iy020.tiff
+id-98_distance_1.1443_flakeid-4_size-127_600s-1_tile__ix004_iy012.tiff
+id-99_distance_1.1312_flakeid-2_size-104_600s-1_tile__ix012_iy022.tiff
+id-9_distance_16.2243_flakeid-2_size-217_600s-1_tile__ix017_iy026.tiff

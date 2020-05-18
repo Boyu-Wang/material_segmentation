@@ -1,0 +1,8 @@
+id-93_distance_1.2601_flakeid-18_size-108_G1_tile__ix010_iy018.tiff
+id-94_distance_1.2438_flakeid-27_size-172_G1_tile__ix009_iy005.tiff
+id-95_distance_1.2380_flakeid-11_size-275_G1_tile__ix008_iy001.tiff
+id-96_distance_1.1895_flakeid-7_size-311_G1_tile__ix008_iy001.tiff
+id-97_distance_1.1823_flakeid-10_size-876_G1_tile__ix002_iy023.tiff
+id-98_distance_1.1672_flakeid-19_size-216_G1_tile__ix007_iy005.tiff
+id-99_distance_1.1614_flakeid-4_size-110_G1_tile__ix004_iy004.tiff
+id-9_distance_15.0663_flakeid-0_size-260_G1_tile__ix014_iy007.tiff

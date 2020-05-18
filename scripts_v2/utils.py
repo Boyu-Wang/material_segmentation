@@ -155,7 +155,6 @@ def perform_robustfit_multichannel_v2(im_hsv, im_gray, thre=3, size_thre=10):
     # print(num_flakes)
     return res_map, image_labelmap, flake_centroids, flake_sizes, num_flakes
 
-
 # iterative process, perform robust on 3 channels: gray, h, v, and add their results together
 def perform_robustfit_multichannel_v3(im_hsv, im_gray, thre_high=4, thre_low=2, size_thre=10):
     # im_hsv = im_hsv.astype('float')

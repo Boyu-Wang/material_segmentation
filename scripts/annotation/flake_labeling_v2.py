@@ -36,7 +36,7 @@ import copy
 
 parser = argparse.ArgumentParser(description='flake segmentation')
 parser.add_argument('--exp_sid', default=0, type=int, help='exp start id')
-parser.add_argument('--exp_eid', default=1, type=int, help='exp end id')
+parser.add_argument('--exp_eid', default=4, type=int, help='exp end id')
 parser.add_argument('--subexp_sid', default=0, type=int, help='subexp start id')
 parser.add_argument('--subexp_eid', default=1, type=int, help='subexp end id')
 parser.add_argument('--img_sid', default=0, type=int)
@@ -215,55 +215,52 @@ def label_one_img(img_name, subexp_dir, rslt_dir, fig_dir, labelfig_save_path, l
 
 
 def main():
-    # data_path = '../../data/data_jan2019'
-    # result_path = '../../results/data_jan2019_script/mat'
-    # fig_path = '../../results/data_jan2019_script/fig'
-    # labelfig_path = '../../results/data_jan2019_script/labelfig_784'
-    # labelmat_path = '../../results/data_jan2019_script/labelmat_784'
-
-    data_path = '../../data/data_sep2019'
-    result_path = '../../results/data_sep2019_script/mat'
-    fig_path = '../../results/data_sep2019_script/fig'
-    labelfig_path = '../../results/data_sep2019_script/labelfig_glue'
-    labelmat_path = '../../results/data_sep2019_script/labelmat_glue'
-
+    
     # data_path = '../../data/10222019G wtih Suji/center_patch_500_500'
-    # result_path = '../../results/10222019G wtih Suji_script/mat'
-    # fig_path = '../../results/10222019G wtih Suji_script/fig'
-    # labelfig_path = '../../results/10222019G wtih Suji_script/labelfig_graphene'
-    # labelmat_path = '../../results/10222019G wtih Suji_script/labelmat_graphene'
+    # result_path = '../../results/10222019G wtih Suji_script/center_patch_500_500/mat'
+    # fig_path = '../../results/10222019G wtih Suji_script/center_patch_500_500/fig'
+    # labelfig_path = '../../results/10222019G wtih Suji_script/center_patch_500_500/labelfig_graphene'
+    # labelmat_path = '../../results/10222019G wtih Suji_script/center_patch_500_500/labelmat_graphene'
+
+    data_path = '../../data/10222019G wtih Suji/center_patch_500_500'
+    result_path = '../../results/10222019G wtih Suji_script/center_patch_500_500/mat'
+    fig_path = '../../results/10222019G wtih Suji_script/center_patch_500_500/fig'
+    labelfig_path = '../../results/10222019G wtih Suji_script/center_patch_500_500/labelfig_others'
+    labelmat_path = '../../results/10222019G wtih Suji_script/center_patch_500_500/labelmat_others'
+
 
     exp_names = os.listdir(data_path)
     exp_names.sort()
     exp_names = [ename for ename in exp_names if ename[0] != '.']
 
-    # print(exp_names)
+    print(exp_names)
     # exp_names = exp_names[args.exp_sid: args.exp_eid]
 
     for d in range(args.exp_sid, args.exp_eid):
         exp_name = exp_names[d]
-        subexp_names = os.listdir(os.path.join(data_path, exp_name))
-        subexp_names = [sname for sname in subexp_names if os.path.isdir(os.path.join(data_path, exp_name, sname))]
-        subexp_names.sort()
-        # print(subexp_names)
+        # subexp_names = os.listdir(os.path.join(data_path, exp_name))
+        # subexp_names = [sname for sname in subexp_names if os.path.isdir(os.path.join(data_path, exp_name, sname))]
+        # subexp_names.sort()
+        # # print(subexp_names)
 
-        # process each subexp
-        for s_d in range(args.subexp_sid, min(len(subexp_names), args.subexp_eid)):
-            sname = subexp_names[s_d]
-            img_names = os.listdir(os.path.join(data_path, exp_name, sname))
-            img_names.sort()
-            img_names = img_names[args.img_sid:args.img_eid]
-            # flake_save_path = os.path.join(cluster_path, exp_name+sname)
-            labelfig_save_path = os.path.join(labelfig_path, exp_name, sname)
-            labelmat_save_path = os.path.join(labelmat_path, exp_name, sname)
-            
-            if not os.path.exists(labelfig_save_path):
-                os.makedirs(labelfig_save_path)
-            if not os.path.exists(labelmat_save_path):
-                os.makedirs(labelmat_save_path)
+        # # process each subexp
+        # for s_d in range(args.subexp_sid, min(len(subexp_names), args.subexp_eid)):
+        #     sname = subexp_names[s_d]
+            # img_names = os.listdir(os.path.join(data_path, exp_name, sname))
+        img_names = os.listdir(os.path.join(data_path, exp_name))
+        img_names.sort()
+        img_names = img_names[args.img_sid:args.img_eid]
+        # flake_save_path = os.path.join(cluster_path, exp_name+sname)
+        labelfig_save_path = os.path.join(labelfig_path, exp_name)
+        labelmat_save_path = os.path.join(labelmat_path, exp_name)
+        
+        if not os.path.exists(labelfig_save_path):
+            os.makedirs(labelfig_save_path)
+        if not os.path.exists(labelmat_save_path):
+            os.makedirs(labelmat_save_path)
 
-            for img_name in img_names:
-                label_one_img(img_name, os.path.join(data_path, exp_name, sname), os.path.join(result_path, exp_name, sname), os.path.join(fig_path, exp_name, sname), labelfig_save_path, labelmat_save_path)
+        for img_name in img_names:
+            label_one_img(img_name, os.path.join(data_path, exp_name), os.path.join(result_path, exp_name), os.path.join(fig_path, exp_name), labelfig_save_path, labelmat_save_path)
 
 
 
