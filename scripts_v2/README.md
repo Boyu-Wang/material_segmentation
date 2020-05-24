@@ -81,9 +81,9 @@ To setup Python CGI, please check this [guide](python_cgi_guide.html).
 
 To annotate images:
 
-1) change the `rslt_path` in Line 35 to be the path of predicted graphenes that you want to annotate, for example: `../result/data_111x_individual_result/classify_colorfea-threesub-contrast-bg-shape_2.0_100_top-100`.
-2) move the file `annotate_graphene.cgi` to places that host the web service, e.g: `/usr/lib/cgi-bin/`
-3) annotate using links like: `http://vision.cs.stonybrook.edu/cgi-bin/AnnoEx/cgi-bin/annotate_graphene.cgi?fea=threesub-contrast-bg-shape&expinfo=PDMS-QPress 60s_2&size=100-20000&id=0&user=testuser123`. Change the address accordingly. change the `fea=` to features you used, change the `expinfo` to the experiment name and subexperiment name, connectted by `_`, change `user=` to the a specific user id to avoid annotation override by others.
+(1) change the `rslt_path` in Line 35 to be the path of predicted graphenes that you want to annotate, for example: `../result/data_111x_individual_result/classify_colorfea-threesub-contrast-bg-shape_2.0_100_top-100`.
+(2) move the file `annotate_graphene.cgi` to places that host the web service, e.g: `/usr/lib/cgi-bin/`
+(3) annotate using links like: `http://vision.cs.stonybrook.edu/cgi-bin/AnnoEx/cgi-bin/annotate_graphene.cgi?fea=threesub-contrast-bg-shape&expinfo=PDMS-QPress 60s_2&size=100-20000&id=0&user=testuser123`. Change the address accordingly. change the `fea=` to features you used, change the `expinfo` to the experiment name and subexperiment name, connectted by `_`, change `user=` to the a specific user id to avoid annotation override by others.
 
 
 
