@@ -188,6 +188,14 @@ def process_one_image(img_name, save_name, fig_save_name, bg_name=None):
         flake_i['flake_innercontrast_color_fea'] = np.array(flake_inner_contrast_color_fea)
         flake_i['flake_bg_color_fea'] = np.array(flake_bg_color_fea)
 
+        flake_i['flake_shape_fea_names'] = ['len_area_ratio'] + ['contour_hist'] * 15 + ['fracdim']
+        flake_i['flake_color_fea_names'] = ['gray_avg', 'v_avg', 'gray_avg', 'gray_std', 'h_avg', 's_avg', 'v_avg', 'h_std', 's_std', 'v_std', 'r_avg', 'g_avg', 'b_avg', 'r_std', 'g_std', 'b_std', 'gray_entropy', 
+                                            'inner_gray_avg', 'inner_v_avg', 'inner_gray_avg', 'inner_gray_std', 'inner_h_avg', 'inner_s_avg', 'inner_v_avg', 'inner_h_std', 'inner_s_std', 'inner_v_std', 'inner_r_avg',
+                                            'inner_g_avg', 'inner_b_avg', 'inner_r_std', 'inner_g_std', 'inner_b_std', 'inner_gray_entropy']
+        flake_i['flake_contrast_color_fea_names'] = ['contrast_gray_avg', 'contrast_v_avg', 'contrast_gray_avg', 'contrast_gray_std', 'contrast_h_avg', 'contrast_s_avg', 'contrast_v_avg', 'contrast_h_std', 
+                                                    'contrast_s_std', 'contrast_v_std', 'contrast_r_avg', 'contrast_g_avg', 'contrast_b_avg', 'contrast_r_std', 'contrast_g_std', 'contrast_b_std', 'contrast_gray_entropy',]
+        flake_i['flake_bg_color_fea_names'] = ['bg_gray_avg', 'bg_gray_std', 'bg_h_avg', 'bg_s_avg', 'bg_v_avg', 'bg_h_std', 'bg_s_std', 'bg_v_std', 'bg_r_avg', 'bg_g_avg', 'bg_b_avg', 'bg_r_std', 'bg_g_std', 'bg_b_std']
+
         # subsegment the flake
         if flake_i['flake_size'] > 100:
             n_clusters = hyperparams['n_clusters']

@@ -237,7 +237,7 @@ def main():
                             pred_cls_name = 'graphene'
                             
                     if val_pred_cls[imx] != val_labels[imx]:
-                        new_name = os.path.join(, 'gt_' + val_names[imx] + '_predict_%s_score_%.3f.png'%(pred_cls_name, pred_score))
+                        new_name = os.path.join(test_clf_save_dir, 'gt_' + val_names[imx] + '_predict_%s_score_%.3f.png'%(pred_cls_name, pred_score))
                         os.system('cp %s %s'%(ori_name, new_name))
 
 

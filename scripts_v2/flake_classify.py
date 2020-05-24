@@ -27,7 +27,7 @@ parser.add_argument('--exp_eid', default=5, type=int, help='exp end id')
 parser.add_argument('--subexp_sid', default=0, type=int, help='subexp start id')
 parser.add_argument('--subexp_eid', default=15, type=int, help='subexp end id')
 parser.add_argument('--n_jobs', default=30, type=int, help='multiprocessing cores')
-parser.add_argument('--color_fea', default='threesub-contrast-bg-shape', type=str, help='which color feature to use: contrast, ori, both, contrast-bg, ori-bg, both-bg, contrast-bg-shape, threesub-contrast-bg-shape')
+parser.add_argument('--color_fea', default='threesub-contrast-bg-shape', type=str, help='which color feature to use: threesub-contrast-bg-shape, firstcluster-contrast-bg-shape')
 parser.add_argument('--topk', default=100, type=int, help='number of top predicted graphenes to visualize')
 args = parser.parse_args()
 
@@ -113,11 +113,11 @@ def classify_one_image(img_name, info_name, classifier, norm_fea, new_img_save_p
             # sub features may contain NaN values due to only have one cluster.
             if np.any(np.isnan(img_fea)):
                 continue
-            pred_cls = classifier.predict(img_fea)
+            pred_cls = classifier.predict(img_fea)[0]
 
             color = rgb_colormaps[pred_cls]
 
-            pred_distance = classifier.decision_function(img_fea)[4]
+            pred_distance = classifier.decision_function(img_fea)[0, 4]
             distances.append(pred_distance)
             distance_flake_ids.append(i)
             flake_sizes.append(flake_size)
@@ -129,7 +129,7 @@ def classify_one_image(img_name, info_name, classifier, norm_fea, new_img_save_p
 
 
 # process one sub exp, read all the data, and classify each image. In the end, visualize top 100 predicted graphenes
-def classify_one_subexp(subexp_dir, rslt_dir, result_classify_save_path, norm_fea, classifier):
+def classify_one_subexp(subexp_dir, rslt_dir, result_classify_save_path, result_classify_topk_save_path, norm_fea, classifier):
     img_names = os.listdir(subexp_dir)
     img_names = [n_i for n_i in img_names if n_i[0]  not in ['.', '_']]
     img_names.sort()
@@ -200,7 +200,7 @@ def classify_one_subexp(subexp_dir, rslt_dir, result_classify_save_path, norm_fe
             im_tosave = np.concatenate([im_tosave_withcontour, black_strip, im_tosave], 1)
 
             # flake_shape_fea = flakes[flake_id]['flake_shape_fea']
-            save_name = os.path.join(result_classify_save_path, 'id-%d_distance_%.4f_flakeid-%d_size-%d_%s'%(k, distance, flake_id, flake_size, img_names[image_id]))
+            save_name = os.path.join(result_classify_topk_save_path, 'id-%d_distance_%.4f_flakeid-%d_size-%d_%s'%(k, distance, flake_id, flake_size, img_names[image_id]))
 
             cv2.imwrite(save_name, np.flip(im_tosave, 2))
 
@@ -209,6 +209,7 @@ def main():
     data_path = '../data/data_111x_individual/'
     result_path = '../results/data_111x_individual_result/mat_2.0_100'
     result_classify_path = '../results/data_111x_individual_result/classify_colorfea-%s_2.0_100'%(args.color_fea)
+    result_classify_topk_path = '../results/data_111x_individual_result/classify_colorfea-%s_2.0_100_top-%d'%(args.color_fea, args.topk)
 
     norm_fea = pickle.load(open('../results/pretrained_clf/graphene_classifier_with_moreanno_v3_colorfea-%s/normfea.p'%args.color_fea, 'rb'))
     classifier = pickle.load(open('../results/pretrained_clf/graphene_classifier_with_moreanno_v3_colorfea-%s/feanorm_weighted_classifier-linearsvm-10.000000.p'%args.color_fea, 'rb'))
@@ -231,8 +232,11 @@ def main():
             result_classify_save_path = os.path.join(result_classify_path, exp_name, sname)
             if not os.path.exists(result_classify_save_path):
                 os.makedirs(result_classify_save_path)
+            result_classify_topk_save_path = os.path.join(result_classify_topk_path, exp_name, sname)
+            if not os.path.exists(result_classify_topk_save_path):
+                os.makedirs(result_classify_topk_save_path)
 
-            classify_one_subexp(os.path.join(data_path, exp_name, sname), os.path.join(result_path, exp_name, sname), result_classify_save_path, norm_fea, classifier)
+            classify_one_subexp(os.path.join(data_path, exp_name, sname), os.path.join(result_path, exp_name, sname), result_classify_save_path, result_classify_topk_save_path, norm_fea, classifier)
 
 if __name__ == '__main__':
     main()
